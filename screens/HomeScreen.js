@@ -12,14 +12,15 @@ import * as Permissions from 'expo-permissions';
 import csv from 'csvtojson'
 import { AsyncStorage } from 'react-native';
 import shortid from 'shortid'
-
 import { MonoText } from '../components/StyledText';
 import { CustomMarker } from '../components/CustomMarker'
+import { MapTypeButton } from '../components/MapTypeButton'
 
 export default function HomeScreen() {
   let [initialRegion, setInitialRegion] = useState(null)
   let [userLocation, setUserLocation] = useState(null)
   let [dailyData, setDailyData] = useState(null)
+  let [mapType, setMapType] = useState('activeCases')
 
   const getUserLocation = async () => {
     let { status } = await Permissions.askAsync(Permissions.LOCATION);
@@ -71,6 +72,7 @@ export default function HomeScreen() {
       {
         initialRegion != null &&
         <View>
+          <MapTypeButton setMapType={setMapType} ></MapTypeButton>
           <MapView style={styles.mapStyle}
             initialRegion={initialRegion}
             // provider="google"
@@ -97,6 +99,7 @@ export default function HomeScreen() {
                   title={name}
                   description={point['Confirmed']}
                   radius={Math.cbrt(point.Confirmed) * 3}
+                  mapType={mapType}
                 ></CustomMarker>
               )
             })}
@@ -164,9 +167,5 @@ const styles = StyleSheet.create({
     // height: Dimensions.get('window').height,
     height: '90%'
   },
-  marker: {
-    backgroundColor: 'red',
-    borderRadius: 5,
-    padding: 5
-  }
+
 });

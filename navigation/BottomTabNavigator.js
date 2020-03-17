@@ -40,8 +40,8 @@ function getHeaderTitle(route) {
 
   switch (routeName) {
     case 'Home':
-      return 'How to get started';
+      return '2019-nCoV Cases';
     case 'Links':
-      return 'Links to learn more';
+      return 'Learn More';
   }
 }
