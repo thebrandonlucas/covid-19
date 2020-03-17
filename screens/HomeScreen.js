@@ -1,7 +1,9 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react'
-import { Image, Platform, StyleSheet, Text, TouchableOpacity, View, 
-  Dimensions, Button } from 'react-native';
+import {
+  Image, Platform, StyleSheet, Text, TouchableOpacity, View,
+  Dimensions, Button
+} from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import * as WebBrowser from 'expo-web-browser';
 import MapView, { Marker, Circle } from 'react-native-maps';
@@ -19,22 +21,22 @@ export default function HomeScreen() {
   let [userLocation, setUserLocation] = useState(null)
   let [dailyData, setDailyData] = useState(null)
 
-  const getUserLocation = async() => {
+  const getUserLocation = async () => {
     let { status } = await Permissions.askAsync(Permissions.LOCATION);
     let location = await Location.getCurrentPositionAsync({});
     const region = {
-      latitude: location.coords.latitude, 
-      longitude: location.coords.longitude, 
-      latitudeDelta: 0.9022, 
-      longitudeDelta: 0.1, 
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      latitudeDelta: 0.9022,
+      longitudeDelta: 0.1,
     }
 
     setInitialRegion(region)
     return location
   }
 
-  const getUserState = async(location) => {
-    const response = await Location.reverseGeocodeAsync({latitude: location.coords.latitude, longitude: location.coords.longitude})
+  const getUserState = async (location) => {
+    const response = await Location.reverseGeocodeAsync({ latitude: location.coords.latitude, longitude: location.coords.longitude })
     const address = response['0']
     setUserLocation(address)
   }
@@ -87,11 +89,6 @@ export default function HomeScreen() {
               } else {
                 name = point['Province/State']
               }
-              const largestConfirmed = Number(dailyData[0].Confirmed)
-              const smallestConfirmed = Number(dailyData[dailyData.length - 1].Confirmed)
-              const minPointSize = 15
-              const maxPointSize = 150
-              const confirmedNormalized = (Number(point.Confirmed) - smallestConfirmed) / (largestConfirmed - smallestConfirmed) * (maxPointSize - minPointSize) + minPointSize
               const latlng = { latitude: Number(point.Latitude), longitude: Number(point.Longitude) }
               return (
                 <CustomMarker
@@ -99,7 +96,7 @@ export default function HomeScreen() {
                   coordinate={latlng}
                   title={name}
                   description={point['Confirmed']}
-                  radius={confirmedNormalized}
+                  radius={Math.cbrt(point.Confirmed) * 3}
                 ></CustomMarker>
               )
             })}
@@ -121,7 +118,7 @@ async function getLocalData(name) {
   let data = null
   try {
     data = await AsyncStorage.getItem(name)
-  } catch(error) {
+  } catch (error) {
     console.log('Error retrieving ' + name + ' data: ', error)
   }
   return data
@@ -130,7 +127,7 @@ async function getLocalData(name) {
 async function setLocalData(name, data) {
   try {
     await AsyncStorage.setItem(name, data)
-  } catch(error) {
+  } catch (error) {
     console.log('Error storing ' + name + ' data: ', error)
   }
 }
@@ -168,8 +165,8 @@ const styles = StyleSheet.create({
     height: '90%'
   },
   marker: {
-    backgroundColor: 'red', 
-    borderRadius: 5, 
+    backgroundColor: 'red',
+    borderRadius: 5,
     padding: 5
   }
 });
