@@ -141,14 +141,11 @@ async function getCoronaData() {
   if (response.status === 404) {
     let date = new Date()
     date.setDate(date.getDate() - 1)
-    console.log(date)
     const yesterday = getFormattedDate(date)
-    console.log(yesterday)
     const responseYesterday = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/' + yesterday + '.csv', {
       method: 'GET'
     })
     const yesterdayData = await responseYesterday.text()
-    console.log(yesterdayData)
     return yesterdayData
   } else {
     const data = await response.text()
