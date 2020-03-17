@@ -44,9 +44,6 @@ export default function HomeScreen() {
       getUserState(location)
     })
 
-
-    // console.log('aa', dailyData)
-
     var today = new Date().toDateString()
     const lastDate = getLocalData('date')
     // get new data if new day
@@ -61,14 +58,12 @@ export default function HomeScreen() {
       })
     } else {
       getLocalData('daily').then((data) => {
-        console.log('d', data)
         setDailyData(data)
       }).catch(e => {
         console.log(e)
       })
     }
   }, [])
-  const latlng1 = { latitude: 33, longitude: -83 }
   return (
     <View style={styles.container}>
       {
@@ -85,35 +80,29 @@ export default function HomeScreen() {
             rotateEnabled={true}
             loadingEnabled={true}
           >
-            {dailyData !== null && dailyData.map((point, index) => {
+            {dailyData !== null && dailyData.map((point, i) => {
+              let name
+              if (point['Province/State'] === '') {
+                name = point['Country/Region']
+              } else {
+                name = point['Province/State']
+              }
+              const largestConfirmed = Number(dailyData[0].Confirmed)
+              const smallestConfirmed = Number(dailyData[dailyData.length - 1].Confirmed)
+              const minPointSize = 15
+              const maxPointSize = 150
+              const confirmedNormalized = (Number(point.Confirmed) - smallestConfirmed) / (largestConfirmed - smallestConfirmed) * (maxPointSize - minPointSize) + minPointSize
               const latlng = { latitude: Number(point.Latitude), longitude: Number(point.Longitude) }
               return (
-                // <Marker
-                //   key={index}
-                //   coordinate={latlng}
-                //   title={point['Province/State']}
-                //   description={point['Confirmed']}
-                // />
-                // <Circle
-                //   key={index}
-                //   center={latlng}
-                //   fillColor={'rgba(255, 0, 0, 0.7)'}
-                //   radius={Number(point.Confirmed) * 100}
-                //   strokeWidth = { 1 }
-                //   strokeColor = { '#f00' }
-                //   // onClick={console.log('hello')}
-                // />
                 <CustomMarker
                   key={shortid.generate()}
                   coordinate={latlng}
-                  title={point['Province/State']}
+                  title={name}
                   description={point['Confirmed']}
-                  radius={Number(point.Confirmed)}
+                  radius={confirmedNormalized}
                 ></CustomMarker>
               )
             })}
-            
-           
           </MapView>
           {
             userLocation !== null &&
@@ -147,7 +136,7 @@ async function setLocalData(name, data) {
 }
 
 async function getCoronaData() {
-  const response = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/03-15-2020.csv', {
+  const response = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/03-16-2020.csv', {
     method: 'GET'
   })
   return response.text()

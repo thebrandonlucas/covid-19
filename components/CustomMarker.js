@@ -6,8 +6,7 @@ import { Marker } from 'react-native-maps';
 export function CustomMarker(props) {
 	return (
 		<Marker {...props}>
-			<View style={[styles.marker, {borderRadius: props.radius}]}>
-				
+			<View style={[styles.marker, {width: props.radius, height: props.radius}]}>
 			</View>
 		</Marker>
 	)
@@ -16,7 +15,7 @@ export function CustomMarker(props) {
 const styles = StyleSheet.create({
   marker: {
     backgroundColor: 'rgba(255, 0, 0, 0.7)', 
-    borderRadius: 5, 
-    padding: 5
+    borderRadius: 10000, 
+    padding: 5, 
   }
 });
