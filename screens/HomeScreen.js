@@ -67,6 +67,7 @@ export default function HomeScreen() {
       })
     }
   }, [])
+
   return (
     <View style={styles.container}>
       {
@@ -136,10 +137,23 @@ async function setLocalData(name, data) {
 }
 
 async function getCoronaData() {
-  const response = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/03-16-2020.csv', {
+  const today = getFormattedDate(new Date())
+  const response = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/' + today + '.csv', {
     method: 'GET'
   })
-  return response.text()
+  if (response.status === 404) {
+    let date = new Date()
+    date.setDate(date.getDate() - 1)
+    const yesterday = getFormattedDate(date)
+    const responseYesterday = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/' + yesterday + '.csv', {
+      method: 'GET'
+    })
+    const yesterdayData = await responseYesterday.text()
+    return yesterdayData
+  } else {
+    const data = await response.text()
+    return data
+  }
 }
 
 function convertCSVtoJson(csvData) {
@@ -148,6 +162,13 @@ function convertCSVtoJson(csvData) {
     data.push(json)
   })
   return data
+}
+
+function getFormattedDate(date) {
+  const year = date.getFullYear();
+  const month = (1 + date.getMonth()).toString().padStart(2, '0');
+  const day = (date.getDate()).toString().padStart(2, '0');
+  return month + '-' + day + '-' + year
 }
 
 function handleLearnMorePress() {
