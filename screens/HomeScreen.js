@@ -73,7 +73,7 @@ export default function HomeScreen() {
       {
         initialRegion != null &&
         <View>
-          <MapTypeButton setMapType={setMapType} ></MapTypeButton>
+          <MapTypeButton mapType={mapType} setMapType={setMapType}></MapTypeButton>
           <MapView style={styles.mapStyle}
             initialRegion={initialRegion}
             // provider="google"
@@ -93,16 +93,30 @@ export default function HomeScreen() {
                 name = point['Province/State']
               }
               const latlng = { latitude: Number(point.Latitude), longitude: Number(point.Longitude) }
-              return (
-                <CustomMarker
-                  key={shortid.generate()}
-                  coordinate={latlng}
-                  title={name}
-                  description={point['Confirmed']}
-                  radius={Math.cbrt(point.Confirmed) * 3}
-                  mapType={mapType}
-                ></CustomMarker>
-              )
+              let numCases
+              if (mapType === 'confirmedCases') {
+                numCases = point['Confirmed']
+              } else if (mapType === 'activeCases') {
+                numCases = point['Confirmed'] - point['Deaths'] - point['Recovered']
+              } else if (mapType === 'recovered') {
+                numCases = point['Recovered']
+              } else {
+                numCases = 0
+              }
+              if (numCases > 0) {
+                return (
+                  <CustomMarker
+                    key={shortid.generate()}
+                    coordinate={latlng}
+                    title={name}
+                    description={String(numCases)}
+                    radius={Math.cbrt(numCases) * 3}
+                    mapType={mapType}
+                  ></CustomMarker>
+                )
+              } else {
+                return null
+              }
             })}
           </MapView>
           {

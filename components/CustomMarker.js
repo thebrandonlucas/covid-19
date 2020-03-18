@@ -10,11 +10,11 @@ const blue = 'rgba(0, 0, 255, 0.7)'
 export function CustomMarker(props) {
 	let getBackgroundColor = (mapType) => {
 		if (mapType === 'confirmedCases') {
-			return red
+			return blue
 		} else if (mapType === 'recovered') {
 			return green
 		} else if (mapType === 'activeCases') {
-			return blue
+			return red
 		}
 	}
 	return (

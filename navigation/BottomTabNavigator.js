@@ -40,7 +40,7 @@ function getHeaderTitle(route) {
 
   switch (routeName) {
     case 'Home':
-      return '2019-nCoV Cases';
+      return 'Confirmed 2019-nCoV Cases';
     case 'Links':
       return 'Learn More';
   }
