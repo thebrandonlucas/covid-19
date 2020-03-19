@@ -20,9 +20,17 @@ export default function Dashboard() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        <TotalCountView count={totals.confirmed} />
-        <TotalCountView count={totals.recovered} />
-        <TotalCountView count={totals.deaths} />
+      {
+        totals !== null &&
+        (
+          [
+            <TotalCountView count={totals.confirmed - totals.recovered - totals.deaths} type="Active" color="red"/>,
+            <TotalCountView count={totals.recovered} type="Recovered" color="#3a3"/>,
+            <TotalCountView count={totals.deaths} type="Deaths" color="black"/>,
+            <TotalCountView count={totals.confirmed} type="Total Confirmed" color="blue"/>,
+          ]
+        )
+      }
     </ScrollView>
   );
 }

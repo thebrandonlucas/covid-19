@@ -3,9 +3,9 @@ import { useState } from 'react'
 import { StyleSheet, Text, View } from 'react-native';
 import { Marker } from 'react-native-maps';
 
-const green = 'rgba(0, 255, 0, 0.7)'
-const red = 'rgba(255, 0, 0, 0.7)'
-const blue = 'rgba(0, 0, 255, 0.7)'
+const green = '#3a3'
+const red = 'red'
+const blue = 'blue'
 
 export function CustomMarker(props) {
 	let getBackgroundColor = (mapType) => {
@@ -29,5 +29,6 @@ const styles = StyleSheet.create({
 	marker: {
 		borderRadius: 10000,
 		padding: 5,
+		opacity: 0.7
 	}
 });

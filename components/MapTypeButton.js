@@ -23,7 +23,7 @@ export function MapTypeButton(props) {
                 <Text style={[styles.textStyle, { color: 'red' }]}>Active</Text>
             </TouchableOpacity>
             <TouchableOpacity title="Recovered" style={[styles.mapTypeButton, { backgroundColor: recoveredBackground(props.mapType) }]} onPress={() => { props.setMapType('recovered') }}>
-                <Text style={[styles.textStyle, { color: 'green' }]} color="orange">Recovered</Text>
+                <Text style={[styles.textStyle, { color: '#3a3' }]} color="orange">Recovered</Text>
             </TouchableOpacity>
             <TouchableOpacity title="Total" style={[styles.mapTypeButton, { backgroundColor: totalBackground(props.mapType) }]} onPress={() => { props.setMapType('confirmedCases') }}>
                 <Text style={[styles.textStyle, { color: 'blue' }]}>Total</Text>
