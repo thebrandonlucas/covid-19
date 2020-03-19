@@ -50,9 +50,10 @@ export default function HomeScreen() {
     const lastDate = getLocalData('date')
     // get new data if new day
     if (today !== lastDate) {
-      getCoronaData().then((csvData) => {
-        const data = convertCSVtoJson(csvData)
+      getCoronaData().then(data => {
+        const totals = getTotals(data)
         setLocalData('daily', JSON.stringify(data))
+        setLocalData('totals', JSON.stringify(totals))
         setLocalData('date', today)
         setDailyData(data)
       }).catch(e => {
@@ -133,7 +134,12 @@ async function setLocalData(name, data) {
   }
 }
 
+// async function fetchData(date) {
+
+// }
+
 async function getCoronaData() {
+  var csvData
   const today = getFormattedDate(new Date())
   const response = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/' + today + '.csv', {
     method: 'GET'
@@ -145,20 +151,29 @@ async function getCoronaData() {
     const responseYesterday = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/' + yesterday + '.csv', {
       method: 'GET'
     })
-    const yesterdayData = await responseYesterday.text()
-    return yesterdayData
+    csvData = await responseYesterday.text()
   } else {
-    const data = await response.text()
-    return data
+    csvData = await response.text()
   }
+  return await convertCSVtoJson(csvData)
 }
 
-function convertCSVtoJson(csvData) {
-  let data = []
-  csv().fromString(csvData).subscribe((json) => {
+async function convertCSVtoJson(csvData) {
+  var data = []
+  await csv().fromString(csvData).subscribe((json) => {
     data.push(json)
   })
   return data
+}
+
+function getTotals(data) {
+  let confirmed = 0, deaths = 0, recovered = 0
+  for(let i = 0; i < data.length; i++) {
+    confirmed += Number(data[i].Confirmed)
+    deaths += Number(data[i].Deaths)
+    recovered += Number(data[i].Recovered)
+  }
+  return {confirmed, deaths, recovered}
 }
 
 function getFormattedDate(date) {
