@@ -4,25 +4,25 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import { AsyncStorage } from 'react-native';
 
+import { TotalCountView } from '../components/TotalCountView'
+
 export default function Dashboard() {
   let [dailyData, setDailyData] = useState(null)
   let [totals, setTotals] = useState(null)
 
   useEffect(() => {
     getLocalData('totals').then((response) => {
-      console.log(response)
       setTotals(JSON.parse(response))
     }).catch(e => {
       console.log(e)
     })
   }, [])
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View>
-        <Text>{totals.confirmed}</Text>
-        <Text>{totals.deaths}</Text>
-        <Text>{totals.recovered}</Text>
-      </View>
+        <TotalCountView count={totals.confirmed} />
+        <TotalCountView count={totals.recovered} />
+        <TotalCountView count={totals.deaths} />
     </ScrollView>
   );
 }
