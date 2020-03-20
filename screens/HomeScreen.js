@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react'
 import {
   Image, Platform, StyleSheet, Text, TouchableOpacity, View,
-  Dimensions, Button
+  Dimensions, Button, Picker
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import * as WebBrowser from 'expo-web-browser';
@@ -12,9 +12,11 @@ import * as Permissions from 'expo-permissions';
 import csv from 'csvtojson'
 import { AsyncStorage } from 'react-native';
 import shortid from 'shortid'
+
 import { MonoText } from '../components/StyledText';
 import { CustomMarker } from '../components/CustomMarker'
 import { MapTypeButton } from '../components/MapTypeButton'
+import states from '../constants/states.json'
 
 export default function HomeScreen() {
   let [initialRegion, setInitialRegion] = useState(null)
@@ -36,37 +38,42 @@ export default function HomeScreen() {
     return location
   }
 
-  const getUserState = async (location) => {
+  const getUserAddress = async (location) => {
     const response = await Location.reverseGeocodeAsync({ latitude: location.coords.latitude, longitude: location.coords.longitude })
-    const address = response['0']
-    setUserLocation(address)
+    return response[0]
   }
+  console.log('adsf')
 
-  useEffect(() => {
-    getUserLocation().then((location) => {
-      getUserState(location)
-    })
+  const initializeData = async () => {
+    const location = await getUserLocation()
+    const address = await getUserAddress(location)
+    setUserLocation(address)
 
-    var today = new Date().toDateString()
+    var today = getFormattedDate(new Date())
     const lastDate = getLocalData('date')
     // get new data if new day
     if (today !== lastDate) {
-      getCoronaData().then(data => {
-        const totals = getTotals(data)
-        setLocalData('daily', JSON.stringify(data))
-        setLocalData('totals', JSON.stringify(totals))
-        setLocalData('date', today)
-        setDailyData(data)
-      }).catch(e => {
-        console.log(e)
-      })
+      const data = await  getCoronaData()
+      const totals = getTotals(data)
+      const userStateCases = getUserStateCases(data, address.isoCountryCode, address.region)
+      const userCountryCases = getUserCountryCases(data, address.isoCountryCode)
+      const region = address.region
+      const countryCode = address.isoCountryCode
+      const userData = {region: userStateCases, countryCode: userCountryCases}
+      setLocalData('userData', JSON.stringify(userData))
+      setLocalData(today, JSON.stringify(data))
+      setLocalData('totals', JSON.stringify(totals))
+      setLocalData('date', today)
+      setDailyData(data)
     } else {
-      getLocalData('daily').then((data) => {
-        setDailyData(data)
-      }).catch(e => {
-        console.log(e)
-      })
+      console.log('other')
+      const data = await getLocalData('daily')
+      setDailyData(data)
     }
+  }
+
+  useEffect(() => {
+    initializeData()
   }, [])
 
   return (
@@ -120,13 +127,6 @@ export default function HomeScreen() {
               }
             })}
           </MapView>
-          {
-            userLocation !== null &&
-            <View>
-              <Text>state: {userLocation.region}</Text>
-              <Text>country: {userLocation.country}</Text>
-            </View>
-          }
         </View>
       }
     </View>
@@ -193,6 +193,49 @@ function getTotals(data) {
   return {confirmed, deaths, recovered}
 }
 
+// FIXME: only gets location data for US
+function getUserStateCases(data, countryCode, state) {
+  if (countryCode === 'US') {
+    for (let i = 0; i < data.length; i++) {
+      if (states[state] === data[i]['Province/State']) {
+        const confirmed = Number(data[i].Confirmed)
+        const recovered = Number(data[i].Recovered)
+        const deaths = Number(data[i].Deaths)
+        return {confirmed, recovered, deaths}
+      }
+    }
+  }
+  return null
+}
+
+// FIXME: current Hopkins data doesn't provide all countries (like US)
+// only aggregates data for US, not china or other countries reporting many counts
+// FIXME: doesn't seem to be getting the right numbers (lower numbers)
+function getUserCountryCases(data, country) {
+  if (country === 'US') {
+    let confirmed = 0, recovered = 0, deaths = 0
+    for (let i = 0; i < data.length; i++) {
+      if (data[i]['Country/Region'] === 'US') {
+          confirmed += Number(data[i].Confirmed)
+          recovered += Number(data[i].Recovered)
+          deaths += Number(data[i].Deaths)
+          return {confirmed, recovered, deaths}
+      }
+    }
+  } else {
+    // countries without multiple states
+    for (let i = 0; i < data.length; i++) {
+      if (country === data[i]['Country/Region'] && data[i]['Province/State'] === '') {
+          const confirmed = Number(data[i].Confirmed)
+          const recovered = Number(data[i].Recovered)
+          const deaths = Number(data[i].Deaths)
+          return {confirmed, recovered, deaths}
+      }
+    }
+  }
+  return null
+}
+
 function getFormattedDate(date) {
   const year = date.getFullYear();
   const month = (1 + date.getMonth()).toString().padStart(2, '0');
@@ -203,7 +246,6 @@ function getFormattedDate(date) {
 function handleLearnMorePress() {
   WebBrowser.openBrowserAsync('https://docs.expo.io/versions/latest/workflow/development-mode/');
 }
-
 
 const styles = StyleSheet.create({
   container: {
