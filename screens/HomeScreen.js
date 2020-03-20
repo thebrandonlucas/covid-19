@@ -17,11 +17,12 @@ import shortid from 'shortid'
 import { MonoText } from '../components/StyledText';
 import { CustomMarker } from '../components/CustomMarker'
 import { MapTypeButton } from '../components/MapTypeButton'
+import { UserLocationView } from '../components/UserLocationView'
 import states from '../constants/states.json'
 
 export default function HomeScreen() {
   let [initialRegion, setInitialRegion] = useState(null)
-  let [userAddress, setUserAddress] = useState(null)
+  let [userData, setUserData] = useState(null)
   let [coronaData, setCoronaData] = useState(null)
   let [mapType, setMapType] = useState('activeCases')
 
@@ -47,7 +48,6 @@ export default function HomeScreen() {
     const location = await getUserLocation()
     setInitialRegion(location.region)
     const address = await getUserAddress(location.location)
-    setUserAddress(address)
 
     var today = getDateString(new Date())
     const lastDate = await getLocalData('date')
@@ -57,11 +57,7 @@ export default function HomeScreen() {
       const dateData = await getAllDatesData()
       const data = await getCoronaData(new Date())
       const totals = getTotals(data)
-      const userStateCases = getUserStateCases(data, address.isoCountryCode, address.region)
-      const userCountryCases = getUserCountryCases(data, address.isoCountryCode)
-      const region = address.region
-      const countryCode = address.isoCountryCode
-      const userData = {region: userStateCases, countryCode: userCountryCases}
+      const userData = getUserData(data, address)
       setLocalData('coronaDateData', JSON.stringify(dateData))
       setLocalData('coronaData', JSON.stringify(data))
       setLocalData('userData', JSON.stringify(userData))
@@ -69,7 +65,9 @@ export default function HomeScreen() {
       setCoronaData(data)
     } else {
       const data = JSON.parse(await getLocalData('coronaData'))
+      const userData = JSON.parse(await getLocalData('userData'))
       setCoronaData(data)
+      setUserData(userData)
     }
   }
 
@@ -83,6 +81,10 @@ export default function HomeScreen() {
         initialRegion != null &&
         <View>
           <MapTypeButton mapType={mapType} setMapType={setMapType}></MapTypeButton>
+          {
+            userData !== null && 
+            <UserLocationView userData={userData} mapType={mapType} />
+          }
           <MapView style={styles.mapStyle}
             initialRegion={initialRegion}
             showsUserLocation={true}
@@ -210,7 +212,6 @@ function getUserStateCases(data, countryCode, state) {
 
 // FIXME: current Hopkins data doesn't provide all countries (like US)
 // only aggregates data for US, not china or other countries reporting many counts
-// FIXME: doesn't seem to be getting the right numbers (lower numbers)
 function getUserCountryCases(data, country) {
   if (country === 'US') {
     let confirmed = 0, recovered = 0, deaths = 0
@@ -237,31 +238,44 @@ function getUserCountryCases(data, country) {
 }
 
 async function getAllDatesData() {
-    var today = getDateString(new Date())
-    let dateData = JSON.parse(await getLocalData('coronaDateData'))
-    let date
-    // if first time loading app, get all date data
-    if (dateData === null || dateData === undefined) {
-      dateData = {}
-      // day before first day of COVID-19 tracking
-      date = new Date(2020, 0, 21)
-    } else {
-      const dates = Object.keys(dateData)
-      const lastLoadedDate = dates[dates.length - 1]
-      date = getFormattedDate(lastLoadedDate)
-    }
-
-    let formattedDate = getDateString(date)
-    let i = 0
-    while (formattedDate !== today && i < 1000) {
-      i += 1
-      date = new Date(date.setDate(date.getDate() + 1))
-      formattedDate = getDateString(date)
-      const data = await getCoronaData(date)
-      dateData[formattedDate] = data
-    }
-    return dateData
+  var today = getDateString(new Date())
+  let dateData = JSON.parse(await getLocalData('coronaDateData'))
+  let date
+  // if first time loading app, get all date data
+  if (dateData === null || dateData === undefined) {
+    dateData = {}
+    // day before first day of COVID-19 tracking
+    date = new Date(2020, 0, 21)
+  } else {
+    const dates = Object.keys(dateData)
+    const lastLoadedDate = dates[dates.length - 1]
+    date = getFormattedDate(lastLoadedDate)
   }
+
+  let formattedDate = getDateString(date)
+  let i = 0
+  while (formattedDate !== today && i < 1000) {
+    i += 1
+    date = new Date(date.setDate(date.getDate() + 1))
+    formattedDate = getDateString(date)
+    const data = await getCoronaData(date)
+    dateData[formattedDate] = data
+  }
+  return dateData
+}
+
+function getUserData(data, address) {
+  const userStateCases = getUserStateCases(data, address.isoCountryCode, address.region)
+  const userCountryCases = getUserCountryCases(data, address.isoCountryCode)
+  const region = states[address.region]
+  const countryCode = address.isoCountryCode
+  return {
+    region: region, 
+    country: countryCode, 
+    regionCases: userStateCases, 
+    countryCases: userCountryCases
+  }
+}
 
 function getDateString(date) {
   const year = date.getFullYear();

@@ -1,6 +1,9 @@
 const tintColor = '#2f95dc';
 
 export default {
+  activeCases: 'red', 
+  confirmedCases: 'blue', 
+  recovered: '#3a3', 
   tintColor,
   tabIconDefault: '#ccc',
   tabIconSelected: tintColor,
