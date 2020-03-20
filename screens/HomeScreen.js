@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import * as WebBrowser from 'expo-web-browser';
+var maps = require('react-native-maps')
 import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
@@ -20,8 +21,8 @@ import states from '../constants/states.json'
 
 export default function HomeScreen() {
   let [initialRegion, setInitialRegion] = useState(null)
-  let [userLocation, setUserLocation] = useState(null)
-  let [dailyData, setDailyData] = useState(null)
+  let [userAddress, setUserAddress] = useState(null)
+  let [coronaData, setCoronaData] = useState(null)
   let [mapType, setMapType] = useState('activeCases')
 
   const getUserLocation = async () => {
@@ -34,8 +35,7 @@ export default function HomeScreen() {
       longitudeDelta: 0.1,
     }
 
-    setInitialRegion(region)
-    return location
+    return {location, region}
   }
 
   const getUserAddress = async (location) => {
@@ -45,29 +45,31 @@ export default function HomeScreen() {
 
   const initializeData = async () => {
     const location = await getUserLocation()
-    const address = await getUserAddress(location)
-    setUserLocation(address)
+    setInitialRegion(location.region)
+    const address = await getUserAddress(location.location)
+    setUserAddress(address)
 
-    var today = getFormattedDate(new Date())
+    var today = getDateString(new Date())
     const lastDate = await getLocalData('date')
-    // get new data if new day
+
+    // get new data if new day (or if first app load)
     if (today !== lastDate) {
-      const data = await  getCoronaData()
+      const dateData = await getAllDatesData()
+      const data = await getCoronaData(new Date())
       const totals = getTotals(data)
       const userStateCases = getUserStateCases(data, address.isoCountryCode, address.region)
       const userCountryCases = getUserCountryCases(data, address.isoCountryCode)
       const region = address.region
       const countryCode = address.isoCountryCode
       const userData = {region: userStateCases, countryCode: userCountryCases}
+      setLocalData('coronaDateData', JSON.stringify(dateData))
+      setLocalData('coronaData', JSON.stringify(data))
       setLocalData('userData', JSON.stringify(userData))
-      setLocalData(today, JSON.stringify(data))
       setLocalData('totals', JSON.stringify(totals))
-      setLocalData('date', today)
-      setDailyData(data)
+      setCoronaData(data)
     } else {
-      const data = JSON.parse(await getLocalData('daily'))
-      console.log('dat', data)
-      setDailyData(data)
+      const data = JSON.parse(await getLocalData('coronaData'))
+      setCoronaData(data)
     }
   }
 
@@ -83,7 +85,6 @@ export default function HomeScreen() {
           <MapTypeButton mapType={mapType} setMapType={setMapType}></MapTypeButton>
           <MapView style={styles.mapStyle}
             initialRegion={initialRegion}
-            // provider="google"
             showsUserLocation={true}
             zoomEnabled={true}
             minZoomLevel={0}
@@ -92,7 +93,7 @@ export default function HomeScreen() {
             rotateEnabled={true}
             loadingEnabled={true}
           >
-            {dailyData !== null && dailyData.map((point, i) => {
+            {coronaData !== null && coronaData.map((point, i) => {
               let name
               if (point['Province/State'] === '') {
                 name = point['Country/Region']
@@ -154,16 +155,16 @@ async function setLocalData(name, data) {
 
 // }
 
-async function getCoronaData() {
+async function getCoronaData(currentDate) {
   var csvData
-  const today = getFormattedDate(new Date())
-  const response = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/' + today + '.csv', {
+  const currentDateFormatted = getDateString(currentDate)
+  const response = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/' + currentDateFormatted + '.csv', {
     method: 'GET'
   })
   if (response.status === 404) {
     let date = new Date()
-    date.setDate(date.getDate() - 1)
-    const yesterday = getFormattedDate(date)
+    date.setDate(currentDate.getDate() - 1)
+    const yesterday = getDateString(date)
     const responseYesterday = await fetch('https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_daily_reports/' + yesterday + '.csv', {
       method: 'GET'
     })
@@ -235,11 +236,43 @@ function getUserCountryCases(data, country) {
   return null
 }
 
-function getFormattedDate(date) {
+async function getAllDatesData() {
+    var today = getDateString(new Date())
+    let dateData = JSON.parse(await getLocalData('coronaDateData'))
+    let date
+    // if first time loading app, get all date data
+    if (dateData === null || dateData === undefined) {
+      dateData = {}
+      // day before first day of COVID-19 tracking
+      date = new Date(2020, 0, 21)
+    } else {
+      const dates = Object.keys(dateData)
+      const lastLoadedDate = dates[dates.length - 1]
+      date = getFormattedDate(lastLoadedDate)
+    }
+
+    let formattedDate = getDateString(date)
+    let i = 0
+    while (formattedDate !== today && i < 1000) {
+      i += 1
+      date = new Date(date.setDate(date.getDate() + 1))
+      formattedDate = getDateString(date)
+      const data = await getCoronaData(date)
+      dateData[formattedDate] = data
+    }
+    return dateData
+  }
+
+function getDateString(date) {
   const year = date.getFullYear();
   const month = (1 + date.getMonth()).toString().padStart(2, '0');
   const day = (date.getDate()).toString().padStart(2, '0');
   return month + '-' + day + '-' + year
+}
+
+function getFormattedDate(string) {
+  const parts = string.split('-')
+  return new Date(parts[2], parts[0] - 1, parts[1])
 }
 
 function handleLearnMorePress() {

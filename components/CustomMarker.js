@@ -18,7 +18,7 @@ export function CustomMarker(props) {
 		}
 	}
 	return (
-		<Marker {...props}>
+		<Marker {...props} onMarkerPress={e => e.stopPropagation()}>
 			<View style={[styles.marker, { width: props.radius, height: props.radius }, { backgroundColor: getBackgroundColor(props.mapType) }]}>
 			</View>
 		</Marker >

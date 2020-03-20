@@ -6,13 +6,16 @@ import { AsyncStorage } from 'react-native';
 import shortid from 'shortid'
 
 import { TotalCountView } from '../components/TotalCountView'
+import { RegionPicker } from '../components/RegionPicker'
 
 export default function Dashboard() {
   let [dailyData, setDailyData] = useState(null)
   let [totals, setTotals] = useState(null)
 
   const initializeData = async () => {
+    // const data = JSON.parse(await )
     const totals = JSON.parse(await getLocalData('totals'))
+    const dateData = JSON.parse(await getLocalData('coronaDateData'))
     setTotals(totals)
   } 
 
@@ -25,12 +28,13 @@ export default function Dashboard() {
       {
         totals !== null &&
         ([
-            <TotalCountView count={totals.confirmed - totals.recovered - totals.deaths} type="Active" color="red" key={shortid.generate()}/>,
-            <TotalCountView count={totals.recovered} type="Recovered" color="#3a3" key={shortid.generate()}/>,
-            <TotalCountView count={totals.deaths} type="Deaths" color="black" key={shortid.generate()}/>,
-            <TotalCountView count={totals.confirmed} type="Total Confirmed" color="blue" key={shortid.generate()}/>,
+          <TotalCountView count={totals.confirmed - totals.recovered - totals.deaths} type="Active" color="red" key={shortid.generate()}/>,
+          <TotalCountView count={totals.recovered} type="Recovered" color="#3a3" key={shortid.generate()}/>,
+          <TotalCountView count={totals.deaths} type="Deaths" color="black" key={shortid.generate()}/>,
+          <TotalCountView count={totals.confirmed} type="Total Confirmed" color="blue" key={shortid.generate()}/>,
         ])
       }
+      <RegionPicker />
     </ScrollView>
   );
 }
