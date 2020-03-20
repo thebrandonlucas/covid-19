@@ -11,12 +11,13 @@ export default function Dashboard() {
   let [dailyData, setDailyData] = useState(null)
   let [totals, setTotals] = useState(null)
 
+  const initializeData = async () => {
+    const totals = JSON.parse(await getLocalData('totals'))
+    setTotals(totals)
+  } 
+
   useEffect(() => {
-    getLocalData('totals').then((response) => {
-      setTotals(JSON.parse(response))
-    }).catch(e => {
-      console.log(e)
-    })
+    initializeData()
   }, [])
 
   return (

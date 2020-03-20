@@ -42,7 +42,6 @@ export default function HomeScreen() {
     const response = await Location.reverseGeocodeAsync({ latitude: location.coords.latitude, longitude: location.coords.longitude })
     return response[0]
   }
-  console.log('adsf')
 
   const initializeData = async () => {
     const location = await getUserLocation()
@@ -50,7 +49,7 @@ export default function HomeScreen() {
     setUserLocation(address)
 
     var today = getFormattedDate(new Date())
-    const lastDate = getLocalData('date')
+    const lastDate = await getLocalData('date')
     // get new data if new day
     if (today !== lastDate) {
       const data = await  getCoronaData()
@@ -66,8 +65,8 @@ export default function HomeScreen() {
       setLocalData('date', today)
       setDailyData(data)
     } else {
-      console.log('other')
-      const data = await getLocalData('daily')
+      const data = JSON.parse(await getLocalData('daily'))
+      console.log('dat', data)
       setDailyData(data)
     }
   }
@@ -216,12 +215,12 @@ function getUserCountryCases(data, country) {
     let confirmed = 0, recovered = 0, deaths = 0
     for (let i = 0; i < data.length; i++) {
       if (data[i]['Country/Region'] === 'US') {
-          confirmed += Number(data[i].Confirmed)
-          recovered += Number(data[i].Recovered)
-          deaths += Number(data[i].Deaths)
-          return {confirmed, recovered, deaths}
+        confirmed += Number(data[i].Confirmed)
+        recovered += Number(data[i].Recovered)
+        deaths += Number(data[i].Deaths)
       }
     }
+    return {confirmed, recovered, deaths}
   } else {
     // countries without multiple states
     for (let i = 0; i < data.length; i++) {
