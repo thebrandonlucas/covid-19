@@ -2,8 +2,9 @@ import * as React from 'react';
 import { useState, useEffect } from 'react'
 import {
   Image, Platform, StyleSheet, Text, TouchableOpacity, View,
-  Dimensions, Button, Picker
+  Dimensions, Button, Picker, AsyncStorage
 } from 'react-native';
+import { Slider } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import * as WebBrowser from 'expo-web-browser';
 var maps = require('react-native-maps')
@@ -11,7 +12,6 @@ import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import * as Permissions from 'expo-permissions';
 import csv from 'csvtojson'
-import { AsyncStorage } from 'react-native';
 import shortid from 'shortid'
 
 import { MonoText } from '../components/StyledText';
@@ -24,7 +24,11 @@ export default function HomeScreen() {
   let [initialRegion, setInitialRegion] = useState(null)
   let [userData, setUserData] = useState(null)
   let [coronaData, setCoronaData] = useState(null)
+  let [dateData, setDateData] = useState(null)
+  let [dates, setDates] = useState(null)
+  let [sliderValue, setSliderValue] = useState(0)
   let [mapType, setMapType] = useState('activeCases')
+  let [geoCoords, setGeoCoords] = useState(null)
 
   const getUserLocation = async () => {
     let { status } = await Permissions.askAsync(Permissions.LOCATION);
@@ -42,6 +46,12 @@ export default function HomeScreen() {
   const getUserAddress = async (location) => {
     const response = await Location.reverseGeocodeAsync({ latitude: location.coords.latitude, longitude: location.coords.longitude })
     return response[0]
+  }
+
+  const handleSliderValueChange = (e) => {
+    setSliderValue(e)
+    const index = dates[e]
+    setCoronaData(dateData[index])
   }
 
   const initializeData = async () => {
@@ -62,10 +72,21 @@ export default function HomeScreen() {
       setLocalData('coronaData', JSON.stringify(data))
       setLocalData('userData', JSON.stringify(userData))
       setLocalData('totals', JSON.stringify(totals))
+      setDateData(dateData)
+      const dates = Object.keys(dateData)
+      setDates(dates)
+      setSliderValue(dates.length - 1)
+      setGeoCoords(getGeoCoords(data))
       setCoronaData(data)
     } else {
       const data = JSON.parse(await getLocalData('coronaData'))
       const userData = JSON.parse(await getLocalData('userData'))
+      const dateData = JSON.parse(await getLocalData('coronaDateData'))
+      setDates(Object.keys(dateData))
+      setDateData(dateData)
+      const coords = getGeoCoords(data)
+      
+      setGeoCoords(getGeoCoords(data))
       setCoronaData(data)
       setUserData(userData)
     }
@@ -78,13 +99,30 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       {
-        initialRegion != null &&
+        initialRegion !== null &&
         <View>
           <MapTypeButton mapType={mapType} setMapType={setMapType}></MapTypeButton>
           {
             userData !== null && 
             <UserLocationView userData={userData} mapType={mapType} />
           }
+          {
+            dateData && dates && 
+            <View style={{alignSelf: 'center', alignItems: 'center'}}>
+              <Text>Timeline: {dates[sliderValue].slice(1)}</Text>
+              <Slider
+                style={{width: 300, height: 40}}
+                minimumValue={0}
+                maximumValue={dates.length - 1}
+                step={1}
+                minimumTrackTintColor="#4af"
+                maximumTrackTintColor="#ccc"
+                value={sliderValue}
+                onValueChange={handleSliderValueChange}
+              />
+            </View>
+          }
+          
           <MapView style={styles.mapStyle}
             initialRegion={initialRegion}
             showsUserLocation={true}
@@ -95,37 +133,50 @@ export default function HomeScreen() {
             rotateEnabled={true}
             loadingEnabled={true}
           >
-            {coronaData !== null && coronaData.map((point, i) => {
+            {coronaData !== null && geoCoords && coronaData.map((point) => {
               let name
               if (point['Province/State'] === '') {
                 name = point['Country/Region']
               } else {
                 name = point['Province/State']
               }
-              const latlng = { latitude: Number(point.Latitude), longitude: Number(point.Longitude) }
-              let numCases
-              if (mapType === 'confirmedCases') {
-                numCases = point['Confirmed']
-              } else if (mapType === 'activeCases') {
-                numCases = point['Confirmed'] - point['Deaths'] - point['Recovered']
-              } else if (mapType === 'recovered') {
-                numCases = point['Recovered']
-              } else {
-                numCases = 0
-              }
-              if (numCases > 0) {
-                return (
-                  <CustomMarker
-                    key={shortid.generate()}
-                    coordinate={latlng}
-                    title={name}
-                    description={String(numCases)}
-                    radius={Math.cbrt(numCases) * 3}
-                    mapType={mapType}
-                  ></CustomMarker>
-                )
-              } else {
-                return null
+              // don't display if past name in dataset is different than current name
+              // i.e. "United States Virgin Islands" vs "Virgin Islands, U.S."
+              // FIXME: this solution won't display Countries/Regions with different previous names
+              // and if there is no Latitude/Longitude given
+              const todayCoordsExist = geoCoords[name] !== undefined
+              const pointCoordsExist = point.Latitude !== undefined
+              if (todayCoordsExist || pointCoordsExist) {
+                let latlng
+                if (todayCoordsExist) {
+                  latlng = { latitude: geoCoords[name].latitude, longitude: geoCoords[name].longitude}
+                } else if (pointCoordsExist) {
+                  latlng = { latitude: Number(point.Latitude), longitude: Number(point.Longitude) }
+                }
+                let numCases = 1
+                if (mapType === 'confirmedCases') {
+                  numCases = point['Confirmed']
+                } else if (mapType === 'activeCases') {
+                  numCases = point['Confirmed'] - point['Deaths'] - point['Recovered']
+                } else if (mapType === 'recovered') {
+                  numCases = point['Recovered']
+                } else {
+                  numCases = 0
+                }
+                if (numCases > 0) {
+                  return (
+                    <CustomMarker
+                      key={shortid.generate()}
+                      coordinate={latlng}
+                      title={name}
+                      description={String(numCases)}
+                      radius={Math.cbrt(numCases) * 3}
+                      mapType={mapType}
+                    ></CustomMarker>
+                  )
+                } else {
+                  return null
+                }
               }
             })}
           </MapView>
@@ -275,6 +326,22 @@ function getUserData(data, address) {
     regionCases: userStateCases, 
     countryCases: userCountryCases
   }
+}
+
+// associate lat and long with name of country
+function getGeoCoords(data) {
+  let coordMapping = {}
+  for (let i = 0; i < data.length; i++) {
+    let name
+    const point = data[i]
+    if (point['Province/State'] === '') {
+      name = point['Country/Region']
+    } else {
+      name = point['Province/State']
+    }
+    coordMapping[name] = {latitude: Number(point.Latitude), longitude: Number(point.Longitude)}
+  }
+  return coordMapping
 }
 
 function getDateString(date) {

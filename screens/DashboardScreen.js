@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { StyleSheet, Text, View, AsyncStorage, Alert } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import shortid from 'shortid'
-import { VictoryBar, VictoryChart, VictoryLine, VictoryTheme } from "victory-native";
+import { VictoryBar, VictoryChart, VictoryLine, VictoryTheme, VictoryZoomContainer } from "victory-native";
 
 import { TotalCountView } from '../components/TotalCountView'
 import { RegionPicker } from '../components/RegionPicker'
@@ -15,6 +15,8 @@ export default function Dashboard() {
   let [coronaData, setCoronaData] = useState(null)
   let [totals, setTotals] = useState(null)
   let [dateTotals, setDateTotals] = useState(null)
+
+  let [zoomDomain, setZoomDomain] = useState({ x: [new Date(2020, 0, 22), new Date()] })
 
   // let [selectedDateData, setSelectedDateData] = useState(null)
   // let [selectedRegionData, setSelectedRegionData] = useState(null)
@@ -34,12 +36,21 @@ export default function Dashboard() {
 
    
 
-    let totalsByDate = []
+    let totalsByDate = {
+      active: [], 
+      confirmed: [], 
+      recovered: [], 
+      deaths: [], 
+    }
     for (let i = 0; i < responseDates.length; i++) {
       const data = responseDateData[responseDates[i]]
       const tempTotals = getTotals(data)
       const formattedDate = getFormattedDate(responseDates[i])
-      totalsByDate.push({x: formattedDate, y: tempTotals.confirmed})
+      totalsByDate.confirmed.push({x: formattedDate, y: tempTotals.confirmed})
+      totalsByDate.recovered.push({x: formattedDate, y: tempTotals.recovered})
+      totalsByDate.deaths.push({x: formattedDate, y: tempTotals.deaths})
+      const active = tempTotals.confirmed - tempTotals.recovered - tempTotals.deaths 
+      totalsByDate.active.push({x: formattedDate, y: active})
     }
     setDateTotals(totalsByDate)
 
@@ -62,6 +73,10 @@ export default function Dashboard() {
     setTotals(initTotals)
   } 
 
+  const handleZoom = (domain) => {
+    setZoomDomain(domain)
+  }
+
   useEffect(() => {
     initializeData()
   }, [])
@@ -82,17 +97,42 @@ export default function Dashboard() {
         // <RegionPicker totalData={coronaData} regions={selectedRegionData} setSelectedRegionData={setSelectedRegionData} />
       }
       {/*<DatePicker dates={dates} setDates={setDates} />*/}
+      {
+        dateTotals && 
+        <View style={{alignSelf: 'center'}}>
+          <VictoryChart width={375} style={{alignSelf: 'center'}}>
+            <VictoryLine
+              style={{
+                data: { stroke: "blue" },
+                parent: { border: "1px solid #ccc"}
+              }}
+              data={dateTotals.confirmed}
+            />
+            <VictoryLine
+              style={{
+                data: { stroke: "#3a3" },
+                parent: { border: "1px solid #ccc"}
+              }}
+              data={dateTotals.recovered}
+            />
+            <VictoryLine
+              style={{
+                data: { stroke: "black" },
+                parent: { border: "1px solid #ccc"}
+              }}
+              data={dateTotals.deaths}
+            />
+            <VictoryLine
+              style={{
+                data: { stroke: "red" },
+                parent: { border: "1px solid #ccc"}
+              }}
+              data={dateTotals.active}
+            />
+          </VictoryChart>
+        </View>
+      }
 
-<VictoryChart
->
-  <VictoryLine
-    style={{
-      data: { stroke: "#c43a31" },
-      parent: { border: "1px solid #ccc"}
-    }}
-    data={dateTotals}
-  />
-</VictoryChart>
     </View>
   );
 }
