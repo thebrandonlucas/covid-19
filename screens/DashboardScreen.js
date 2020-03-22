@@ -1,10 +1,9 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react'
-import { StyleSheet, Text, View, AsyncStorage, Alert } from 'react-native';
+import { StyleSheet, Text, View, AsyncStorage, Alert, ActivityIndicator } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
 import shortid from 'shortid'
-import { VictoryBar, VictoryChart, VictoryLine, VictoryTheme, VictoryZoomContainer } from "victory-native";
-
+import { VictoryChart, VictoryLine, VictoryAxis } from "victory-native";
 import { TotalCountView } from '../components/TotalCountView'
 import { RegionPicker } from '../components/RegionPicker'
 import { CustomDatePicker } from '../components/CustomDatePicker'
@@ -15,26 +14,17 @@ export default function Dashboard() {
   let [coronaData, setCoronaData] = useState(null)
   let [totals, setTotals] = useState(null)
   let [dateTotals, setDateTotals] = useState(null)
-
-  let [zoomDomain, setZoomDomain] = useState({ x: [new Date(2020, 0, 22), new Date()] })
-
-  // let [selectedDateData, setSelectedDateData] = useState(null)
-  // let [selectedRegionData, setSelectedRegionData] = useState(null)
+  let [isLoading, setIsLoading] = useState(true)
 
   const initializeData = async () => {
     const responseDateData = JSON.parse(await getLocalData('coronaDateData'))
     const responseDates = Object.keys(responseDateData)
-    // const responseTotals = JSON.parse(await getLocalData('totals'))
     setDateData(responseDateData)
     setDates(responseDates)
 
     const todayDateFormatted = responseDates[responseDates.length - 1]
     const todayData = responseDateData[todayDateFormatted]
     setCoronaData(todayData)
-    // setSelectedRegionData(todayData)
-    // setSelectedDateData(todayData)
-
-   
 
     let totalsByDate = {
       active: [], 
@@ -53,86 +43,95 @@ export default function Dashboard() {
       totalsByDate.active.push({x: formattedDate, y: active})
     }
     setDateTotals(totalsByDate)
-
-//     Alert.alert(
-//   'Alert Title',
-//   JSON.stringify(totalsByDate),
-//   [
-//     {text: 'Ask me later', onPress: () => console.log('Ask me later pressed')},
-//     {
-//       text: 'Cancel',
-//       onPress: () => console.log('Cancel Pressed'),
-//       style: 'cancel',
-//     },
-//     {text: 'OK', onPress: () => console.log('OK Pressed')},
-//   ],
-//   {cancelable: false},
-// );
-
     const initTotals = getTotals(todayData)
     setTotals(initTotals)
+    setIsLoading(false)
   } 
-
-  const handleZoom = (domain) => {
-    setZoomDomain(domain)
-  }
 
   useEffect(() => {
     initializeData()
   }, [])
 
   return (
+    isLoading 
+    ? 
+    <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+      <Text style={{marginBottom: 20, fontSize: 20}}>Loading Data...</Text>
+      <ActivityIndicator size='large' color='#000' />
+    </View>
+    :
     <View style={styles.container} contentContainerStyle={styles.contentContainer}>
-      {
-        totals !== null &&
-        ([
-          <TotalCountView count={totals.confirmed - totals.recovered - totals.deaths} type="Active" color="red" key={shortid.generate()}/>,
-          <TotalCountView count={totals.recovered} type="Recovered" color="#3a3" key={shortid.generate()}/>,
-          <TotalCountView count={totals.deaths} type="Deaths" color="black" key={shortid.generate()}/>,
-          <TotalCountView count={totals.confirmed} type="Total Confirmed" color="blue" key={shortid.generate()}/>,
-        ])
-      }
-      {
-        // (coronaData && selectedRegionData) && 
-        // <RegionPicker totalData={coronaData} regions={selectedRegionData} setSelectedRegionData={setSelectedRegionData} />
-      }
-      {/*<DatePicker dates={dates} setDates={setDates} />*/}
+      <View style={styles.totalsContainer}>
+        <Text style={styles.chartTitle}></Text>
+        {
+          totals !== null &&
+          ([
+              <TotalCountView count={totals.confirmed - totals.recovered - totals.deaths} type="Active" color="red" key={shortid.generate()}/>,
+              <TotalCountView count={totals.recovered} type="Recovered" color="#3a3" key={shortid.generate()}/>,
+              <TotalCountView count={totals.deaths} type="Deaths" color="black" key={shortid.generate()}/>,
+              <TotalCountView count={totals.confirmed} type="Total Confirmed" color="blue" key={shortid.generate()}/>,
+          ])
+        }
+      </View>
       {
         dateTotals && 
-        <View style={{alignSelf: 'center'}}>
-          <VictoryChart width={375} style={{alignSelf: 'center'}}>
+        <View style={styles.victoryContainer}>
+          <VictoryChart width={375} style={{alignSelf: 'center', marginTop: 0}} domainPadding={{x: 25}}>
+            <VictoryAxis dependentAxis tickFormat={(tick) => `${tick/1000}k`}/>
+            <VictoryAxis scale={{x: "time"}} />
             <VictoryLine
               style={{
-                data: { stroke: "blue" },
-                parent: { border: "1px solid #ccc"}
+                data: { stroke: "blue", strokeWidth: 5 },
+                parent: { border: "3px solid #ccc"}
+              }}
+              animate={{
+                duration: 3000,
+                onLoad: { duration: 2000 }
               }}
               data={dateTotals.confirmed}
             />
             <VictoryLine
               style={{
-                data: { stroke: "#3a3" },
-                parent: { border: "1px solid #ccc"}
+                data: { stroke: "#3a3", strokeWidth: 5 },
+                parent: { border: "3px solid #ccc"}
+              }}
+              animate={{
+                duration: 4000,
+                onLoad: { duration: 3000 }
               }}
               data={dateTotals.recovered}
             />
             <VictoryLine
               style={{
-                data: { stroke: "black" },
-                parent: { border: "1px solid #ccc"}
+                data: { stroke: "black", strokeWidth: 5 },
+                parent: { border: "3px solid #ccc"}
+              }}
+              animate={{
+                duration: 5000,
+                onLoad: { duration: 4000 }
               }}
               data={dateTotals.deaths}
             />
             <VictoryLine
               style={{
-                data: { stroke: "red" },
-                parent: { border: "1px solid #ccc"}
+                data: { stroke: "red", strokeWidth: 5 },
+                parent: { border: "3px solid #ccc"}
+              }}
+              animate={{
+                duration: 2000,
+                onLoad: { duration: 1000 }
               }}
               data={dateTotals.active}
             />
           </VictoryChart>
+          <View style={styles.chartLegend}>
+            <Text style={[styles.legendText, {backgroundColor: 'red'}]}>Active</Text>
+            <Text style={[styles.legendText, {backgroundColor: '#3a3'}]}>Recovered</Text>
+            <Text style={[styles.legendText, {backgroundColor: 'black'}]}>Deaths</Text>
+            <Text style={[styles.legendText, {backgroundColor: 'blue'}]}>Confirmed</Text>
+          </View>
         </View>
       }
-
     </View>
   );
 }
@@ -181,5 +180,29 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     alignItems: 'center', 
+  }, 
+  totalsContainer: {
+    
+  }, 
+  chartTitle: {
+    fontSize: 20, 
+    marginTop: 20, 
+    marginBottom: 0, 
+    fontWeight: 'bold', 
+  }, 
+  victoryContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  chartLegend: {
+    flex: 1, 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+  }, 
+  legendText: {
+    color: '#fff', 
+    padding: 5,
+    margin: 10, 
   }, 
 });

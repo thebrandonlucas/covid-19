@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react'
 import {
   Image, Platform, StyleSheet, Text, TouchableOpacity, View,
-  Dimensions, Button, Picker, AsyncStorage
+  Dimensions, Button, Picker, AsyncStorage, ActivityIndicator
 } from 'react-native';
 import { Slider } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -29,6 +29,7 @@ export default function HomeScreen() {
   let [sliderValue, setSliderValue] = useState(0)
   let [mapType, setMapType] = useState('activeCases')
   let [geoCoords, setGeoCoords] = useState(null)
+  let [isLoading, setIsLoading] = useState(true)
 
   const getUserLocation = async () => {
     let { status } = await Permissions.askAsync(Permissions.LOCATION);
@@ -39,7 +40,6 @@ export default function HomeScreen() {
       latitudeDelta: 0.9022,
       longitudeDelta: 0.1,
     }
-
     return {location, region}
   }
 
@@ -56,14 +56,20 @@ export default function HomeScreen() {
 
   const initializeData = async () => {
     const location = await getUserLocation()
-    setInitialRegion(location.region)
+    const region = {
+      latitude: location.region.latitude, 
+      longitude: location.region.longitude, 
+      latitudeDelta: 10, 
+      longitudeDelta: 10, 
+    }
+    setInitialRegion(region)
     const address = await getUserAddress(location.location)
 
     var today = getDateString(new Date())
-    const lastDate = await getLocalData('date')
+    // const lastDate = await getLocalData('date')
 
     // get new data if new day (or if first app load)
-    if (today !== lastDate) {
+    // if (today !== lastDate) {
       const dateData = await getAllDatesData()
       const data = await getCoronaData(new Date())
       const totals = getTotals(data)
@@ -78,18 +84,20 @@ export default function HomeScreen() {
       setSliderValue(dates.length - 1)
       setGeoCoords(getGeoCoords(data))
       setCoronaData(data)
-    } else {
-      const data = JSON.parse(await getLocalData('coronaData'))
-      const userData = JSON.parse(await getLocalData('userData'))
-      const dateData = JSON.parse(await getLocalData('coronaDateData'))
-      setDates(Object.keys(dateData))
-      setDateData(dateData)
-      const coords = getGeoCoords(data)
-      
-      setGeoCoords(getGeoCoords(data))
-      setCoronaData(data)
       setUserData(userData)
-    }
+      setIsLoading(false)
+    // } else {
+    //   const data = JSON.parse(await getLocalData('coronaData'))
+    //   const userData = JSON.parse(await getLocalData('userData'))
+    //   const dateData = JSON.parse(await getLocalData('coronaDateData'))
+    //   const dates = Object.keys(dateData)
+    //   setDates(dates)
+    //   setDateData(dateData)  
+    //   setSliderValue(dates.length - 1)    
+    //   setGeoCoords(getGeoCoords(data))
+    //   setCoronaData(data)
+    //   setUserData(userData)
+    // }
   }
 
   useEffect(() => {
@@ -97,6 +105,13 @@ export default function HomeScreen() {
   }, [])
 
   return (
+    isLoading 
+    ? 
+    <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+      <Text style={{marginBottom: 20, fontSize: 20}}>Loading Map...</Text>
+      <ActivityIndicator size='large' color='#000' />
+    </View>
+    :
     <View style={styles.container}>
       {
         initialRegion !== null &&
@@ -122,7 +137,6 @@ export default function HomeScreen() {
               />
             </View>
           }
-          
           <MapView style={styles.mapStyle}
             initialRegion={initialRegion}
             showsUserLocation={true}
@@ -148,11 +162,11 @@ export default function HomeScreen() {
               const pointCoordsExist = point.Latitude !== undefined
               if (todayCoordsExist || pointCoordsExist) {
                 let latlng
-                if (todayCoordsExist) {
-                  latlng = { latitude: geoCoords[name].latitude, longitude: geoCoords[name].longitude}
-                } else if (pointCoordsExist) {
+                if (pointCoordsExist) {
                   latlng = { latitude: Number(point.Latitude), longitude: Number(point.Longitude) }
-                }
+                } else if (todayCoordsExist) {
+                  latlng = { latitude: geoCoords[name].latitude, longitude: geoCoords[name].longitude}
+                }  
                 let numCases = 1
                 if (mapType === 'confirmedCases') {
                   numCases = point['Confirmed']
@@ -182,7 +196,7 @@ export default function HomeScreen() {
           </MapView>
         </View>
       }
-    </View>
+    </View>  
   );
 }
 
@@ -203,10 +217,6 @@ async function setLocalData(name, data) {
     console.log('Error storing ' + name + ' data: ', error)
   }
 }
-
-// async function fetchData(date) {
-
-// }
 
 async function getCoronaData(currentDate) {
   var csvData

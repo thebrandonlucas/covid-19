@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 36,
+        marginTop: 70,
         marginBottom: 15,
         height: 75,
         paddingTop: 5,
@@ -46,15 +46,10 @@ const styles = StyleSheet.create({
     },
     mapTypeButton: {
         flex: 1,
-        // borderColor: 'gray',
-        // borderWidth: 1,
-        // borderStyle: "solid",
         textAlign: "center",
         borderRadius: 3,
         paddingTop: 7,
         height: 40,
-        // padding: 20
-
     },
     textStyle: {
         color: 'red',
