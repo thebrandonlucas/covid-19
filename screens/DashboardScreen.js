@@ -60,7 +60,7 @@ export default function Dashboard() {
       <ActivityIndicator size='large' color='#000' />
     </View>
     :
-    <View style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.totalsContainer}>
         <Text style={styles.chartTitle}></Text>
         {
@@ -132,7 +132,7 @@ export default function Dashboard() {
           </View>
         </View>
       }
-    </View>
+    </ScrollView>
   );
 }
 

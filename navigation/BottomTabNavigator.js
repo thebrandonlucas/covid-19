@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import TabBarIcon from '../components/TabBarIcon';
 import HomeScreen from '../screens/HomeScreen';
 import DashboardScreen from '../screens/DashboardScreen';
+import InfoScreen from '../screens/InfoScreen';
 
 const BottomTab = createBottomTabNavigator();
 const INITIAL_ROUTE_NAME = 'Home';
@@ -19,8 +20,8 @@ export default function BottomTabNavigator({ navigation, route }) {
         name="Home"
         component={HomeScreen}
         options={{
-          title: 'Get Started',
-          tabBarIcon: ({ focused }) => <TabBarIcon focused={focused} name="md-code-working" />,
+          title: 'Map',
+          tabBarIcon: ({ focused }) => <TabBarIcon focused={focused} name="earth" />,
         }}
       />
       <BottomTab.Screen
@@ -28,7 +29,15 @@ export default function BottomTabNavigator({ navigation, route }) {
         component={DashboardScreen}
         options={{
           title: 'Dashboard',
-          tabBarIcon: ({ focused }) => <TabBarIcon focused={focused} name="md-book" />,
+          tabBarIcon: ({ focused }) => <TabBarIcon focused={focused} name="view-dashboard" />,
+        }}
+      />
+      <BottomTab.Screen
+        name="Info"
+        component={InfoScreen}
+        options={{
+          title: 'Info',
+          tabBarIcon: ({ focused }) => <TabBarIcon focused={focused} name="information-variant" />,
         }}
       />
     </BottomTab.Navigator>
@@ -42,6 +51,8 @@ function getHeaderTitle(route) {
     case 'Home':
       return 'COVID-19 Map';
     case 'Dashboard': 
-      return 'COVID-19 Updates'
+      return 'COVID-19 Global Cases (Johns Hopkins)'
+    case 'Info':
+        return 'Information';
   }
 }

@@ -6,7 +6,6 @@ import {
 } from 'react-native';
 import { Slider } from 'react-native';
 import { ScrollView } from 'react-native-gesture-handler';
-import * as WebBrowser from 'expo-web-browser';
 var maps = require('react-native-maps')
 import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
@@ -364,10 +363,6 @@ function getDateString(date) {
 function getFormattedDate(string) {
   const parts = string.split('-')
   return new Date(parts[2], parts[0] - 1, parts[1])
-}
-
-function handleLearnMorePress() {
-  WebBrowser.openBrowserAsync('https://docs.expo.io/versions/latest/workflow/development-mode/');
 }
 
 const styles = StyleSheet.create({
