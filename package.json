@@ -12,7 +12,7 @@
     "preset": "jest-expo"
   },
   "dependencies": {
-    "@expo/vector-icons": "~10.0.0",
+    "@expo/vector-icons": "^10.0.0",
     "@react-native-community/geolocation": "^2.0.2",
     "@react-native-community/masked-view": "0.1.5",
     "@react-native-community/slider": "^2.0.9",
@@ -22,29 +22,29 @@
     "@react-navigation/web": "~1.0.0-alpha.9",
     "css-tree": "^1.0.0-alpha.39",
     "csvtojson": "^2.0.10",
-    "expo": "~36.0.0",
     "expo-asset": "~8.0.0",
     "expo-constants": "~8.0.0",
     "expo-font": "~8.0.0",
     "expo-location": "~8.0.0",
     "expo-web-browser": "~8.0.0",
-    "react": "~16.9.0",
-    "react-dom": "~16.9.0",
-    "react-native": "https://github.com/expo/react-native/archive/sdk-36.0.0.tar.gz",
+    "react": "16.9.0",
+    "react-dom": "16.9.0",
+    "react-native": "https://github.com/expo/react-native/archive/sdk-36.0.1.tar.gz",
     "react-native-gesture-handler": "~1.5.0",
-    "react-native-maps": "^0.26.1",
+    "react-native-maps": "0.26.1",
     "react-native-safe-area-context": "0.6.0",
     "react-native-screens": "2.0.0-alpha.12",
     "react-native-svg": "9.13.3",
     "react-native-vector-icons": "^6.6.0",
-    "react-native-web": "~0.11.7",
+    "react-native-web": "^0.11.7",
     "shortid": "^2.2.15",
-    "victory-native": "^31.0.0"
+    "victory-native": "^31.0.0",
+    "expo": "^36.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
-    "babel-preset-expo": "~8.0.0",
-    "jest-expo": "~36.0.1"
+    "babel-preset-expo": "^8.0.0",
+    "jest-expo": "^36.0.0"
   },
   "private": true
 }

@@ -53,6 +53,11 @@ export default function HomeScreen() {
     setCoronaData(dateData[index])
   }
 
+  // const handleSlidingComplete = () => {
+  //   const index = dates[sliderValue]
+  //   setCoronaData(dateData[index])
+  // }
+
   const initializeData = async () => {
     const location = await getUserLocation()
     const region = {
@@ -133,6 +138,7 @@ export default function HomeScreen() {
                 maximumTrackTintColor="#ccc"
                 value={sliderValue}
                 onValueChange={handleSliderValueChange}
+                // onSlidingComplete={handleSlidingComplete}
               />
             </View>
           }

@@ -1,9 +1,8 @@
 {
   "expo": {
-    "name": "Tab Navigation Template",
+    "name": "Corona Tracker",
     "slug": "corona-tracker",
-    "privacy": "unlisted",
-    "sdkVersion": "36.0.0",
+    "privacy": "public",
     "platforms": [
       "ios",
       "android",
@@ -25,7 +24,10 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
-    }
+      "supportsTablet": true,
+      "bundleIdentifier": "com.thebrandonlucas.covid19",
+      "buildNumber": "1.0.0"
+    },
+    "description": "Using CSSE Johns Hopkins Data at: https://github.com/CSSEGISandData/COVID-19"
   }
 }
