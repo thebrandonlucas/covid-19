@@ -22,11 +22,13 @@
     "@react-navigation/web": "~1.0.0-alpha.9",
     "css-tree": "^1.0.0-alpha.39",
     "csvtojson": "^2.0.10",
+    "expo": "^36.0.0",
     "expo-asset": "~8.0.0",
     "expo-constants": "~8.0.0",
     "expo-font": "~8.0.0",
     "expo-location": "~8.0.0",
     "expo-web-browser": "~8.0.0",
+    "mem": "^6.0.1",
     "react": "16.9.0",
     "react-dom": "16.9.0",
     "react-native": "https://github.com/expo/react-native/archive/sdk-36.0.1.tar.gz",
@@ -38,8 +40,7 @@
     "react-native-vector-icons": "^6.6.0",
     "react-native-web": "^0.11.7",
     "shortid": "^2.2.15",
-    "victory-native": "^31.0.0",
-    "expo": "^36.0.0"
+    "victory-native": "^31.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
