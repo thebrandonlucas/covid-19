@@ -33,6 +33,8 @@ export function UserLocationView(props) {
 	}
 
 	return (
+		// FIXME: get numbers for US Recovered, currently 0
+		props.mapType !== 'recovered' &&
 		<View style={styles.container}>
 			<Text>{type} cases in&nbsp;
 				{props.userData.region}: <Text style={{color}}>{stateCases}</Text>,&nbsp;
