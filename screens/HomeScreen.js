@@ -19,6 +19,25 @@ import { MapTypeButton } from '../components/MapTypeButton'
 import { UserLocationView } from '../components/UserLocationView'
 import states from '../constants/states.json'
 
+
+// Johns Hopkins changed their data format on March 23, 2020 for COVID-19
+// must now account for difference between old and new keys
+const dataChangedDate = '03-23-2020'
+const dataKeys = {
+  old: {
+    'region': 'Province/State', 
+    'country': 'Country/Region', 
+    'lat': 'Latitude', 
+    'long': 'Longitude', 
+  }, 
+  new: {
+    'region': 'Province_State', 
+    'country': 'Country_Region', 
+    'lat': 'Lat', 
+    'long': 'Long_', 
+  }
+}
+
 export default function HomeScreen() {
   let [initialRegion, setInitialRegion] = useState(null)
   let [userData, setUserData] = useState(null)
@@ -36,8 +55,8 @@ export default function HomeScreen() {
     const region = {
       latitude: location.coords.latitude,
       longitude: location.coords.longitude,
-      latitudeDelta: 0.9022,
-      longitudeDelta: 0.1,
+      latitudeDelta: 0.01,
+      longitudeDelta: 0.01,
     }
     return {location, region}
   }
@@ -63,8 +82,8 @@ export default function HomeScreen() {
     const region = {
       latitude: location.region.latitude, 
       longitude: location.region.longitude, 
-      latitudeDelta: 10, 
-      longitudeDelta: 10, 
+      latitudeDelta: 1, 
+      longitudeDelta: 1, 
     }
     setInitialRegion(region)
     const address = await getUserAddress(location.location)
@@ -105,104 +124,138 @@ export default function HomeScreen() {
   }
 
   useEffect(() => {
-    initializeData()
+    try {
+      initializeData()
+    } catch (e) {
+      // Alert.alert()
+    }
   }, [])
 
-  return (
-    isLoading 
-    ? 
-    <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
-      <Text style={{marginBottom: 20, fontSize: 20}}>Loading Map...</Text>
-      <ActivityIndicator size='large' color='#000' />
-    </View>
-    :
-    <View style={styles.container}>
-      {
-        initialRegion !== null &&
-        <View>
-          <MapTypeButton mapType={mapType} setMapType={setMapType}></MapTypeButton>
-          {
-            userData !== null && 
-            <UserLocationView userData={userData} mapType={mapType} />
-          }
-          {
-            dateData && dates && 
-            <View style={{alignSelf: 'center', alignItems: 'center'}}>
-              <Text>Timeline: {dates[sliderValue].slice(1)}</Text>
-              <Slider
-                style={{width: 300, height: 40}}
-                minimumValue={0}
-                maximumValue={dates.length - 1}
-                step={1}
-                minimumTrackTintColor="#4af"
-                maximumTrackTintColor="#ccc"
-                value={sliderValue}
-                onValueChange={handleSliderValueChange}
-                // onSlidingComplete={handleSlidingComplete}
-              />
-            </View>
-          }
-          <MapView style={styles.mapStyle}
-            initialRegion={initialRegion}
-            showsUserLocation={true}
-            zoomEnabled={true}
-            minZoomLevel={0}
-            maxZoomLevel={20}
-            scrollEnabled={true}
-            rotateEnabled={true}
-            loadingEnabled={true}
-          >
-            {coronaData !== null && geoCoords && coronaData.map((point) => {
-              let name
-              if (point['Province/State'] === '') {
-                name = point['Country/Region']
-              } else {
-                name = point['Province/State']
-              }
-              // don't display if past name in dataset is different than current name
-              // i.e. "United States Virgin Islands" vs "Virgin Islands, U.S."
-              // FIXME: this solution won't display Countries/Regions with different previous names
-              // and if there is no Latitude/Longitude given
-              const todayCoordsExist = geoCoords[name] !== undefined
-              const pointCoordsExist = point.Latitude !== undefined
-              if (todayCoordsExist || pointCoordsExist) {
-                let latlng
-                if (pointCoordsExist) {
-                  latlng = { latitude: Number(point.Latitude), longitude: Number(point.Longitude) }
-                } else if (todayCoordsExist) {
-                  latlng = { latitude: geoCoords[name].latitude, longitude: geoCoords[name].longitude}
-                }  
-                let numCases = 1
-                if (mapType === 'confirmedCases') {
-                  numCases = point['Confirmed']
-                } else if (mapType === 'activeCases') {
-                  numCases = point['Confirmed'] - point['Deaths'] - point['Recovered']
-                } else if (mapType === 'recovered') {
-                  numCases = point['Recovered']
+  // try {
+    return (
+      isLoading 
+      ? 
+      <View style={{ alignItems: 'center', flex: 1, justifyContent: 'center' }}>
+        <Text style={{marginBottom: 20, fontSize: 20}}>Loading Map...</Text>
+        <ActivityIndicator size='large' color='#000' />
+      </View>
+      :
+      <View style={styles.container}>
+        {
+          initialRegion !== null &&
+          <View>
+            <MapTypeButton mapType={mapType} setMapType={setMapType}></MapTypeButton>
+            {
+              userData !== null && 
+              <UserLocationView userData={userData} mapType={mapType} />
+            }
+            {
+              dateData && dates && 
+              <View style={{alignSelf: 'center', alignItems: 'center'}}>
+                <Text>Timeline: {dates[sliderValue].slice(1)}</Text>
+                <Slider
+                  style={{width: 300, height: 40}}
+                  minimumValue={0}
+                  maximumValue={dates.length - 1}
+                  step={1}
+                  minimumTrackTintColor="#4af"
+                  maximumTrackTintColor="#ccc"
+                  value={sliderValue}
+                  onValueChange={handleSliderValueChange}
+                  // onSlidingComplete={handleSlidingComplete}
+                />
+              </View>
+            }
+            <MapView style={styles.mapStyle}
+              initialRegion={initialRegion}
+              showsUserLocation={true}
+              zoomEnabled={true}
+              minZoomLevel={0}
+              maxZoomLevel={20}
+              scrollEnabled={true}
+              rotateEnabled={true}
+              loadingEnabled={true}
+            >
+              {coronaData !== null && geoCoords && coronaData.map((point) => {
+                const keyType = getDateObject(dates[sliderValue]) >= getDateObject(dataChangedDate) ? 'new' : 'old'
+                const keyRegion = dataKeys[keyType].region
+                const keyCountry = dataKeys[keyType].country
+                let name
+                // TODO: refactor to shorten
+                if (keyType === 'old') {
+
+                  if (point[keyRegion] === '') {
+                    name = point[keyCountry]
+                  } else {
+                    name = point[keyRegion]
+                  }
                 } else {
-                  numCases = 0
+                  if (point['Admin2'] === '') {
+                    if (point[keyRegion] === '') {
+                      name = point[keyCountry]
+                    } else {
+                      name = point[keyRegion]
+                    }
+                  } else {
+                    name = point['Admin2']
+                  }
                 }
-                if (numCases > 0) {
-                  return (
-                    <CustomMarker
-                      key={shortid.generate()}
-                      coordinate={latlng}
-                      title={name}
-                      description={String(numCases)}
-                      radius={Math.cbrt(numCases) * 3}
-                      mapType={mapType}
-                    ></CustomMarker>
-                  )
-                } else {
-                  return null
+                
+                // don't display if past name in dataset is different than current name
+                // i.e. "United States Virgin Islands" vs "Virgin Islands, U.S."
+                // FIXME: this solution won't display Countries/Regions with different previous names
+                // and if there is no Latitude/Longitude given
+                const keyLatitude = dataKeys[keyType].lat
+                const keyLongitude = dataKeys[keyType].long
+                const todayCoordsExist = geoCoords[name] !== undefined
+                const pointCoordsExist = point[keyLatitude] !== undefined
+                if (todayCoordsExist || pointCoordsExist) {
+                  let latlng
+                  if (pointCoordsExist) {
+                    latlng = { latitude: Number(point[keyLatitude]), longitude: Number(point[keyLongitude]) }
+                  } else if (todayCoordsExist) {
+                    latlng = { latitude: geoCoords[name].latitude, longitude: geoCoords[name].longitude}
+                  }  
+                  let numCases = 1
+                  if (mapType === 'confirmedCases') {
+                    numCases = point['Confirmed']
+                  } else if (mapType === 'activeCases') {
+                    numCases = point['Confirmed'] - point['Deaths'] - point['Recovered']
+                  } else if (mapType === 'recovered') {
+                    numCases = point['Recovered']
+                  } else {
+                    numCases = 0
+                  }
+                  if (numCases > 0) {
+                    return (
+                      <CustomMarker
+                        key={shortid.generate()}
+                        coordinate={latlng}
+                        title={name}
+                        description={String(numCases)}
+                        radius={Math.cbrt(numCases) * 3}
+                        mapType={mapType}
+                      ></CustomMarker>
+                    )
+                  } else {
+                    return null
+                  }
                 }
-              }
-            })}
-          </MapView>
-        </View>
-      }
-    </View>  
-  );
+              })}
+            </MapView>
+          </View>
+        }
+      </View>  
+    );
+  // } catch (e) {
+    // Alert.alert()
+    // return(
+    //   <View>
+
+    //   </View>   
+    // )
+  // }
+  
 }
 
 async function getLocalData(name) {
@@ -264,14 +317,16 @@ function getTotals(data) {
 // FIXME: only gets location data for US
 function getUserStateCases(data, countryCode, state) {
   if (countryCode === 'US') {
+    let confirmed = 0, deaths = 0, recovered = 0
     for (let i = 0; i < data.length; i++) {
-      if (states[state] === data[i]['Province/State']) {
-        const confirmed = Number(data[i].Confirmed)
-        const recovered = Number(data[i].Recovered)
-        const deaths = Number(data[i].Deaths)
-        return {confirmed, recovered, deaths}
+      // FIXME: allow this to change to old date style if changing with timeline
+      if (states[state] === data[i]['Province_State']) {
+        confirmed += Number(data[i].Confirmed)
+        recovered += Number(data[i].Recovered)
+        deaths += Number(data[i].Deaths)
       }
     }
+    return {confirmed, recovered, deaths}
   }
   return null
 }
@@ -282,7 +337,8 @@ function getUserCountryCases(data, country) {
   if (country === 'US') {
     let confirmed = 0, recovered = 0, deaths = 0
     for (let i = 0; i < data.length; i++) {
-      if (data[i]['Country/Region'] === 'US') {
+      // FIXME: allow this to change to old date style if changing with timeline
+      if (data[i]['Country_Region'] === 'US') {
         confirmed += Number(data[i].Confirmed)
         recovered += Number(data[i].Recovered)
         deaths += Number(data[i].Deaths)
@@ -315,7 +371,7 @@ async function getAllDatesData() {
   } else {
     const dates = Object.keys(dateData)
     const lastLoadedDate = dates[dates.length - 1]
-    date = getFormattedDate(lastLoadedDate)
+    date = getDateObject(lastLoadedDate)
   }
 
   let formattedDate = getDateString(date)
@@ -366,9 +422,15 @@ function getDateString(date) {
   return month + '-' + day + '-' + year
 }
 
-function getFormattedDate(string) {
+function getDateObject(string) {
   const parts = string.split('-')
   return new Date(parts[2], parts[0] - 1, parts[1])
+}
+
+function sameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate();
 }
 
 const styles = StyleSheet.create({

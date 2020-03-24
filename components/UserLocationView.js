@@ -10,21 +10,26 @@ export function UserLocationView(props) {
 	let type
 	let color
 
-	if (props.mapType === 'confirmedCases') {
-		stateCases = props.userData.regionCases.confirmed
-		countryCases = props.userData.countryCases.confirmed
-		type = 'Total'
-		color = blue
-	} if (props.mapType === 'activeCases') {
-		stateCases = props.userData.regionCases.confirmed - props.userData.regionCases.recovered - props.userData.regionCases.deaths
-		countryCases = props.userData.countryCases.confirmed - props.userData.countryCases.recovered - props.userData.countryCases.deaths
-		type = 'Active'
-		color = red
-	} if (props.mapType === 'recovered') {
-		stateCases = props.userData.regionCases.recovered
-		countryCases = props.userData.countryCases.recovered
-		type = 'Recovered'
-		color = green
+	// in case no user data
+	try {
+		if (props.mapType === 'confirmedCases') {
+			stateCases = props.userData.regionCases.confirmed
+			countryCases = props.userData.countryCases.confirmed
+			type = 'Total'
+			color = blue
+		} if (props.mapType === 'activeCases') {
+			stateCases = props.userData.regionCases.confirmed - props.userData.regionCases.recovered - props.userData.regionCases.deaths
+			countryCases = props.userData.countryCases.confirmed - props.userData.countryCases.recovered - props.userData.countryCases.deaths
+			type = 'Active'
+			color = red
+		} if (props.mapType === 'recovered') {
+			stateCases = props.userData.regionCases.recovered
+			countryCases = props.userData.countryCases.recovered
+			type = 'Recovered'
+			color = green
+		}
+	} catch(e) {
+		console.warn(e)
 	}
 
 	return (
