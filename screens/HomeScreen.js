@@ -46,6 +46,9 @@ export default function HomeScreen() {
   let [dates, setDates] = useState(null)
   let [sliderValue, setSliderValue] = useState(0)
   let [mapType, setMapType] = useState('activeCases')
+  let [keyType, setKeyType] = useState(null)
+  let [keyRegion, setKeyRegion] = useState(null)
+  let [keyCountry, setKeyCountry] = useState(null)
   let [geoCoords, setGeoCoords] = useState(null)
   let [isLoading, setIsLoading] = useState(true)
 
@@ -69,13 +72,14 @@ export default function HomeScreen() {
   const handleSliderValueChange = (e) => {
     setSliderValue(e)
     const index = dates[e]
+    const keyType = getDateObject(dates[e]) >= getDateObject(dataChangedDate) ? 'new' : 'old'
+    const keyRegion = dataKeys[keyType].region
+    const keyCountry = dataKeys[keyType].country
+    setKeyType(keyType)
+    setKeyRegion(keyRegion)
+    setKeyCountry(keyCountry)
     setCoronaData(dateData[index])
   }
-
-  // const handleSlidingComplete = () => {
-  //   const index = dates[sliderValue]
-  //   setCoronaData(dateData[index])
-  // }
 
   const initializeData = async () => {
     const location = await getUserLocation()
@@ -91,36 +95,32 @@ export default function HomeScreen() {
     var today = getDateString(new Date())
     // const lastDate = await getLocalData('date')
 
-    // get new data if new day (or if first app load)
-    // if (today !== lastDate) {
-      const dateData = await getAllDatesData()
-      const data = await getCoronaData(new Date())
-      const totals = getTotals(data)
-      const userData = getUserData(data, address)
-      setLocalData('coronaDateData', JSON.stringify(dateData))
-      setLocalData('coronaData', JSON.stringify(data))
-      setLocalData('userData', JSON.stringify(userData))
-      setLocalData('totals', JSON.stringify(totals))
-      setDateData(dateData)
-      const dates = Object.keys(dateData)
-      setDates(dates)
-      setSliderValue(dates.length - 1)
-      setGeoCoords(getGeoCoords(data))
-      setCoronaData(data)
-      setUserData(userData)
-      setIsLoading(false)
-    // } else {
-    //   const data = JSON.parse(await getLocalData('coronaData'))
-    //   const userData = JSON.parse(await getLocalData('userData'))
-    //   const dateData = JSON.parse(await getLocalData('coronaDateData'))
-    //   const dates = Object.keys(dateData)
-    //   setDates(dates)
-    //   setDateData(dateData)  
-    //   setSliderValue(dates.length - 1)    
-    //   setGeoCoords(getGeoCoords(data))
-    //   setCoronaData(data)
-    //   setUserData(userData)
-    // }
+    const dateData = await getAllDatesData()
+    const data = await getCoronaData(new Date())
+    const totals = getTotals(data)
+    const userData = getUserData(data, address)
+
+    setLocalData('coronaDateData', JSON.stringify(dateData))
+    setLocalData('coronaData', JSON.stringify(data))
+    setLocalData('userData', JSON.stringify(userData))
+    setLocalData('totals', JSON.stringify(totals))
+
+    setDateData(dateData)
+    const dates = Object.keys(dateData)
+    setDates(dates)
+    const sliderValue = dates.length - 1
+    setSliderValue(dates.length - 1)
+    const keyType = getDateObject(dates[sliderValue]) >= getDateObject(dataChangedDate) ? 'new' : 'old'
+    const keyRegion = dataKeys[keyType].region
+    const keyCountry = dataKeys[keyType].country
+    setKeyType(keyType)
+    setKeyRegion(keyRegion)
+    setKeyCountry(keyCountry)
+    const geoCoords = getGeoCoords(data, keyType, keyRegion, keyCountry)
+    setGeoCoords(geoCoords)
+    setCoronaData(data)
+    setUserData(userData)
+    setIsLoading(false)
   }
 
   useEffect(() => {
@@ -131,7 +131,10 @@ export default function HomeScreen() {
     }
   }, [])
 
-  // try {
+//     return (
+// <View></View>
+//       )
+
     return (
       isLoading 
       ? 
@@ -177,45 +180,29 @@ export default function HomeScreen() {
               loadingEnabled={true}
             >
               {coronaData !== null && geoCoords && coronaData.map((point) => {
-                const keyType = getDateObject(dates[sliderValue]) >= getDateObject(dataChangedDate) ? 'new' : 'old'
-                const keyRegion = dataKeys[keyType].region
-                const keyCountry = dataKeys[keyType].country
-                let name
-                // TODO: refactor to shorten
-                if (keyType === 'old') {
-
-                  if (point[keyRegion] === '') {
-                    name = point[keyCountry]
-                  } else {
-                    name = point[keyRegion]
-                  }
-                } else {
-                  if (point['Admin2'] === '') {
-                    if (point[keyRegion] === '') {
-                      name = point[keyCountry]
-                    } else {
-                      name = point[keyRegion]
-                    }
-                  } else {
-                    name = point['Admin2']
-                  }
-                }
-                
+                // const keyType = getDateObject(dates[sliderValue]) >= getDateObject(dataChangedDate) ? 'new' : 'old'
+                // const keyRegion = dataKeys[keyType].region
+                // const keyCountry = dataKeys[keyType].country
+                                      // console.log(point)
+                const name = getName(point, keyType, keyCountry, keyRegion)
                 // don't display if past name in dataset is different than current name
                 // i.e. "United States Virgin Islands" vs "Virgin Islands, U.S."
                 // FIXME: this solution won't display Countries/Regions with different previous names
                 // and if there is no Latitude/Longitude given
                 const keyLatitude = dataKeys[keyType].lat
                 const keyLongitude = dataKeys[keyType].long
+                // ERROR
+                // console.log('key', keyLatitude, keyLongitude)
                 const todayCoordsExist = geoCoords[name] !== undefined
-                const pointCoordsExist = point[keyLatitude] !== undefined
+                const pointCoordsExist = point[keyLatitude] !== undefined && point[keyLongitude] !== undefined
+                // console.log('today', dates[sliderValue], todayCoordsExist || pointCoordsExist)
                 if (todayCoordsExist || pointCoordsExist) {
                   let latlng
                   if (pointCoordsExist) {
                     latlng = { latitude: Number(point[keyLatitude]), longitude: Number(point[keyLongitude]) }
                   } else if (todayCoordsExist) {
                     latlng = { latitude: geoCoords[name].latitude, longitude: geoCoords[name].longitude}
-                  }  
+                  }
                   let numCases = 1
                   if (mapType === 'confirmedCases') {
                     numCases = point['Confirmed']
@@ -226,7 +213,15 @@ export default function HomeScreen() {
                   } else {
                     numCases = 0
                   }
-                  if (numCases > 0) {
+                  // console.log()
+                  // console.log('d', dates[sliderValue])
+                  // if (dates[sliderValue].charAt(1) == '2') {
+                  //   console.log('dates', dates[sliderValue])
+                  //   console.log('point', point)
+                  //   console.log('numcases', numCases)
+                  //   console.log('lat', latlng)
+                  // }
+                  if (numCases > 0) {                    
                     return (
                       <CustomMarker
                         key={shortid.generate()}
@@ -248,12 +243,12 @@ export default function HomeScreen() {
       </View>  
     );
   // } catch (e) {
-    // Alert.alert()
-    // return(
-    //   <View>
+  //   Alert.alert()
+  //   return(
+  //     <View>
 
-    //   </View>   
-    // )
+  //     </View>   
+  //   )
   // }
   
 }
@@ -399,20 +394,46 @@ function getUserData(data, address) {
   }
 }
 
+// get name of region/country/admin2 (county)
+function getName(point, keyType, keyCountry, keyRegion) {
+  let name
+  if (keyType === 'old') {
+    if (point[keyRegion] === '') {
+      name = point[keyCountry]
+    } else {
+      name = point[keyRegion]
+    }
+  } else {
+    if (point['Admin2'] === '') {
+      if (point[keyRegion] === '') {
+        name = point[keyCountry]
+      } else {
+        name = point[keyRegion]
+      }
+    } else {
+      name = point['Admin2']
+    }
+  }
+  return name
+}
+
 // associate lat and long with name of country
-function getGeoCoords(data) {
+// FIXME: content coupling on key vars
+function getGeoCoords(data, keyType, keyRegion, keyCountry) {
   let coordMapping = {}
   for (let i = 0; i < data.length; i++) {
-    let name
     const point = data[i]
-    if (point['Province/State'] === '') {
-      name = point['Country/Region']
-    } else {
-      name = point['Province/State']
-    }
-    coordMapping[name] = {latitude: Number(point.Latitude), longitude: Number(point.Longitude)}
+    const name = getName(point, keyType, keyRegion, keyCountry)
+    coordMapping[name] = getLatLong(point, keyType)
   }
   return coordMapping
+}
+
+function getLatLong(point, keyType) {
+  return {
+    latitude: Number(point[dataKeys[keyType].lat]), 
+    longitude: Number(point[dataKeys[keyType].long])
+  }
 }
 
 function getDateString(date) {
