@@ -22,7 +22,8 @@ import states from '../constants/states.json'
 
 // Johns Hopkins changed their data format on March 23, 2020 for COVID-19
 // must now account for difference between old and new keys
-const dataChangedDate = '03-23-2020'
+const newDataBeginDate = '03-23-2020'
+const oldDataEndDate = '03-01-2020'
 const dataKeys = {
   old: {
     'region': 'Province/State', 
@@ -70,14 +71,14 @@ export default function HomeScreen() {
   }
 
   const handleSliderValueChange = (e) => {
-    setSliderValue(e)
     const index = dates[e]
-    const keyType = getDateObject(dates[e]) >= getDateObject(dataChangedDate) ? 'new' : 'old'
+    const keyType = getDateObject(dates[e]) >= getDateObject(newDataBeginDate) ? 'new' : 'old'
     const keyRegion = dataKeys[keyType].region
     const keyCountry = dataKeys[keyType].country
     setKeyType(keyType)
     setKeyRegion(keyRegion)
     setKeyCountry(keyCountry)
+    setSliderValue(e)
     setCoronaData(dateData[index])
   }
 
@@ -110,13 +111,16 @@ export default function HomeScreen() {
     setDates(dates)
     const sliderValue = dates.length - 1
     setSliderValue(dates.length - 1)
-    const keyType = getDateObject(dates[sliderValue]) >= getDateObject(dataChangedDate) ? 'new' : 'old'
+    const keyType = getDateObject(dates[sliderValue]) >= getDateObject(newDataBeginDate) ? 'new' : 'old'
     const keyRegion = dataKeys[keyType].region
     const keyCountry = dataKeys[keyType].country
     setKeyType(keyType)
     setKeyRegion(keyRegion)
     setKeyCountry(keyCountry)
-    const geoCoords = getGeoCoords(data, keyType, keyRegion, keyCountry)
+
+    // required to get lat and long memoized for both pre and post March 23
+    const oldData = await getCoronaData(getDateObject(oldDataEndDate))
+    const geoCoords = getGeoCoords(oldData, data, keyType, keyRegion, keyCountry)
     setGeoCoords(geoCoords)
     setCoronaData(data)
     setUserData(userData)
@@ -180,22 +184,17 @@ export default function HomeScreen() {
               loadingEnabled={true}
             >
               {coronaData !== null && geoCoords && coronaData.map((point) => {
-                // const keyType = getDateObject(dates[sliderValue]) >= getDateObject(dataChangedDate) ? 'new' : 'old'
-                // const keyRegion = dataKeys[keyType].region
-                // const keyCountry = dataKeys[keyType].country
-                                      // console.log(point)
-                const name = getName(point, keyType, keyCountry, keyRegion)
+                let name = getNameKey(point, keyType)
+                // const nameKey = getNameKey(point, keyType, keyCountry, keyRegion)
                 // don't display if past name in dataset is different than current name
                 // i.e. "United States Virgin Islands" vs "Virgin Islands, U.S."
                 // FIXME: this solution won't display Countries/Regions with different previous names
                 // and if there is no Latitude/Longitude given
                 const keyLatitude = dataKeys[keyType].lat
                 const keyLongitude = dataKeys[keyType].long
-                // ERROR
-                // console.log('key', keyLatitude, keyLongitude)
+                
                 const todayCoordsExist = geoCoords[name] !== undefined
-                const pointCoordsExist = point[keyLatitude] !== undefined && point[keyLongitude] !== undefined
-                // console.log('today', dates[sliderValue], todayCoordsExist || pointCoordsExist)
+                const pointCoordsExist = point[keyLatitude] !== undefined && point[keyLongitude] !== undefined                
                 if (todayCoordsExist || pointCoordsExist) {
                   let latlng
                   if (pointCoordsExist) {
@@ -213,14 +212,6 @@ export default function HomeScreen() {
                   } else {
                     numCases = 0
                   }
-                  // console.log()
-                  // console.log('d', dates[sliderValue])
-                  // if (dates[sliderValue].charAt(1) == '2') {
-                  //   console.log('dates', dates[sliderValue])
-                  //   console.log('point', point)
-                  //   console.log('numcases', numCases)
-                  //   console.log('lat', latlng)
-                  // }
                   if (numCases > 0) {                    
                     return (
                       <CustomMarker
@@ -395,36 +386,76 @@ function getUserData(data, address) {
 }
 
 // get name of region/country/admin2 (county)
-function getName(point, keyType, keyCountry, keyRegion) {
-  let name
-  if (keyType === 'old') {
-    if (point[keyRegion] === '') {
-      name = point[keyCountry]
-    } else {
-      name = point[keyRegion]
-    }
-  } else {
-    if (point['Admin2'] === '') {
+// TODO: refactor for simplicity
+// function getName(point, keyType, keyCountry, keyRegion) {
+//   let name
+//   if (keyType === 'old') {
+//     if (point[keyRegion] === '') {
+//       name = point[keyCountry]
+//     } else {
+//       name = point[keyRegion]
+//     }
+//   } else {
+//     if (point['Admin2'] === '') {
+//       if (point[keyRegion] === '') {
+//         name = point[keyCountry]
+//       } else {
+//         name = point[keyRegion]
+//       }
+//     } else {
+//       name = point['Admin2']
+//     }
+//   }
+//   return name
+// }
+
+// get names of keys for geo coordinates
+// TODO: refactor for simplicity
+function getNameKey(point, keyType) {
+  let name = ''
+  let keyRegion, keyCountry
+  try {
+    if (keyType === 'old') {
+      keyRegion = dataKeys['old']['region']
+      keyCountry = dataKeys['old']['country']
       if (point[keyRegion] === '') {
         name = point[keyCountry]
       } else {
-        name = point[keyRegion]
+          name = point[keyRegion].concat(point[keyCountry])
+      
       }
-    } else {
-      name = point['Admin2']
+    } else if (keyType === 'new') {
+      keyRegion = dataKeys['new']['region']
+      keyCountry = dataKeys['new']['country']
+      if (point['Admin2'] === '') {
+        if (point[keyRegion] === '') {
+          name = point[keyCountry]
+        } else {
+          name = point[keyRegion].concat(point[keyCountry])
+        }
+      } else {
+        name = point['Admin2'].concat(point[keyRegion]).concat(point[keyCountry])
+      }
     }
+  } catch (e) {
+      console.log(e)
   }
   return name
 }
 
 // associate lat and long with name of country
 // FIXME: content coupling on key vars
-function getGeoCoords(data, keyType, keyRegion, keyCountry) {
+function getGeoCoords(oldData, newData, keyType, keyRegion, keyCountry) {
   let coordMapping = {}
-  for (let i = 0; i < data.length; i++) {
-    const point = data[i]
-    const name = getName(point, keyType, keyRegion, keyCountry)
-    coordMapping[name] = getLatLong(point, keyType)
+  for (let i = 0; i < oldData.length; i++) {
+    const point = oldData[i]
+    const name = getNameKey(point, 'old')
+    coordMapping[name] = getLatLong(point, 'old')
+  }
+  for (let i = 0; i < newData.length; i++) {
+    const point = newData[i]
+    const name = getNameKey(point, 'new')
+    coordMapping[name] = getLatLong(point, 'new')
   }
   return coordMapping
 }
