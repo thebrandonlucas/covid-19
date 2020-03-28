@@ -28,6 +28,10 @@
       "bundleIdentifier": "com.thebrandonlucas.covid19",
       "buildNumber": "1.0.0"
     },
+    "android": {
+      "package": "com.thebrandonlucas.covid19",
+      "versionCode": 1
+    },
     "description": "Using CSSE Johns Hopkins Data at: https://github.com/CSSEGISandData/COVID-19"
   }
 }

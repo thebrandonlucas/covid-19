@@ -202,6 +202,9 @@ export default function HomeScreen() {
                   } else if (todayCoordsExist) {
                     latlng = { latitude: geoCoords[name].latitude, longitude: geoCoords[name].longitude}
                   }
+                  // if (point[dataKeys[keyType]['country']] === 'US' && mapType === 'recovered') {
+                    // console.log('point', point)
+                  // }
                   let numCases = 1
                   if (mapType === 'confirmedCases') {
                     numCases = point['Confirmed']
@@ -209,6 +212,9 @@ export default function HomeScreen() {
                     numCases = point['Confirmed'] - point['Deaths'] - point['Recovered']
                   } else if (mapType === 'recovered') {
                     numCases = point['Recovered']
+                    if (point[dataKeys[keyType]['country']] === 'US' && point[dataKeys[keyType]['region']] === 'Washington') {
+                      console.log('point', point, numCases)
+                    }
                   } else {
                     numCases = 0
                   }
@@ -319,7 +325,7 @@ function getUserStateCases(data, countryCode, state) {
 
 // FIXME: current Hopkins data doesn't provide all countries (like US)
 // only aggregates data for US, not china or other countries reporting many counts
-function getUserCountryCases(data, country) {
+function getUserCountryCases(data, country, keyType) {
   if (country === 'US') {
     let confirmed = 0, recovered = 0, deaths = 0
     for (let i = 0; i < data.length; i++) {
@@ -421,7 +427,7 @@ function getNameKey(point, keyType) {
       if (point[keyRegion] === '') {
         name = point[keyCountry]
       } else {
-          name = point[keyRegion].concat(point[keyCountry])
+          name = point[keyRegion].concat(', ').concat(point[keyCountry])
       
       }
     } else if (keyType === 'new') {
@@ -431,14 +437,14 @@ function getNameKey(point, keyType) {
         if (point[keyRegion] === '') {
           name = point[keyCountry]
         } else {
-          name = point[keyRegion].concat(point[keyCountry])
+          name = point[keyRegion].concat(', ').concat(point[keyCountry])
         }
       } else {
-        name = point['Admin2'].concat(point[keyRegion]).concat(point[keyCountry])
+        name = point['Admin2'].concat(', ').concat(point[keyRegion]).concat(', ').concat(point[keyCountry])
       }
     }
   } catch (e) {
-      console.log(e)
+      console.log(point, e)
   }
   return name
 }
