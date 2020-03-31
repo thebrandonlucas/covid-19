@@ -55,18 +55,30 @@ export default function HomeScreen() {
 
   const getUserLocation = async () => {
     let { status } = await Permissions.askAsync(Permissions.LOCATION);
-    let location = await Location.getCurrentPositionAsync({});
-    const region = {
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      latitudeDelta: 0.01,
-      longitudeDelta: 0.01,
+    
+    let region
+    if (status !== 'granted') {
+      // default coords
+      region = {
+        latitude: 33.95644567711626,
+        longitude: -84.78240539428366,
+        latitudeDelta: 1,
+        longitudeDelta: 1,
+      }
+    } else {
+      const location = await Location.getCurrentPositionAsync({});
+      region = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 1,
+        longitudeDelta: 1,
+      }
     }
-    return {location, region}
+    return {status, region}
   }
 
-  const getUserAddress = async (location) => {
-    const response = await Location.reverseGeocodeAsync({ latitude: location.coords.latitude, longitude: location.coords.longitude })
+  const getUserAddress = async (latitude, longitude) => {
+    const response = await Location.reverseGeocodeAsync({ latitude: latitude, longitude: longitude })
     return response[0]
   }
 
@@ -83,15 +95,8 @@ export default function HomeScreen() {
   }
 
   const initializeData = async () => {
-    const location = await getUserLocation()
-    const region = {
-      latitude: location.region.latitude, 
-      longitude: location.region.longitude, 
-      latitudeDelta: 1, 
-      longitudeDelta: 1, 
-    }
+    const {status, region} = await getUserLocation()
     setInitialRegion(region)
-    const address = await getUserAddress(location.location)
 
     var today = getDateString(new Date())
     // const lastDate = await getLocalData('date')
@@ -99,7 +104,12 @@ export default function HomeScreen() {
     const dateData = await getAllDatesData()
     const data = await getCoronaData(new Date())
     const totals = getTotals(data)
-    const userData = getUserData(data, address)
+
+    let userData = null
+    if (status === 'granted') {
+      const address = await getUserAddress(region.latitude, region.longitude)
+      userData = getUserData(data, address)
+    }
 
     setLocalData('coronaDateData', JSON.stringify(dateData))
     setLocalData('coronaData', JSON.stringify(data))
@@ -202,9 +212,6 @@ export default function HomeScreen() {
                   } else if (todayCoordsExist) {
                     latlng = { latitude: geoCoords[name].latitude, longitude: geoCoords[name].longitude}
                   }
-                  // if (point[dataKeys[keyType]['country']] === 'US' && mapType === 'recovered') {
-                    // console.log('point', point)
-                  // }
                   let numCases = 1
                   if (mapType === 'confirmedCases') {
                     numCases = point['Confirmed']
@@ -212,9 +219,6 @@ export default function HomeScreen() {
                     numCases = point['Confirmed'] - point['Deaths'] - point['Recovered']
                   } else if (mapType === 'recovered') {
                     numCases = point['Recovered']
-                    if (point[dataKeys[keyType]['country']] === 'US' && point[dataKeys[keyType]['region']] === 'Washington') {
-                      console.log('point', point, numCases)
-                    }
                   } else {
                     numCases = 0
                   }
