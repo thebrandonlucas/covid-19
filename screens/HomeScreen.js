@@ -14,6 +14,7 @@ import csv from 'csvtojson'
 import shortid from 'shortid'
 
 import { MonoText } from '../components/StyledText';
+import { MapViewComponent } from '../components/MapViewComponent'; 
 import { CustomMarker } from '../components/CustomMarker'
 import { MapTypeButton } from '../components/MapTypeButton'
 import { UserLocationView } from '../components/UserLocationView'
@@ -45,7 +46,8 @@ export default function HomeScreen() {
   let [coronaData, setCoronaData] = useState(null)
   let [dateData, setDateData] = useState(null)
   let [dates, setDates] = useState(null)
-  let [sliderValue, setSliderValue] = useState(0)
+  let [sliderValueMap, setSliderValueMap] = useState(0)
+  let [sliderValueTimeline, setSliderValueTimeline] = useState(0)
   let [mapType, setMapType] = useState('activeCases')
   let [keyType, setKeyType] = useState(null)
   let [keyRegion, setKeyRegion] = useState(null)
@@ -83,6 +85,10 @@ export default function HomeScreen() {
   }
 
   const handleSliderValueChange = (e) => {
+    setSliderValueTimeline(e)
+  }
+
+  const handleSlidingComplete = (e) => {
     const index = dates[e]
     const keyType = getDateObject(dates[e]) >= getDateObject(newDataBeginDate) ? 'new' : 'old'
     const keyRegion = dataKeys[keyType].region
@@ -90,7 +96,7 @@ export default function HomeScreen() {
     setKeyType(keyType)
     setKeyRegion(keyRegion)
     setKeyCountry(keyCountry)
-    setSliderValue(e)
+    setSliderValueMap(e)
     setCoronaData(dateData[index])
   }
 
@@ -120,7 +126,8 @@ export default function HomeScreen() {
     const dates = Object.keys(dateData)
     setDates(dates)
     const sliderValue = dates.length - 1
-    setSliderValue(dates.length - 1)
+    setSliderValueMap(sliderValue)
+    setSliderValueTimeline(sliderValue)
     const keyType = getDateObject(dates[sliderValue]) >= getDateObject(newDataBeginDate) ? 'new' : 'old'
     const keyRegion = dataKeys[keyType].region
     const keyCountry = dataKeys[keyType].country
@@ -169,76 +176,28 @@ export default function HomeScreen() {
             {
               dateData && dates && 
               <View style={{alignSelf: 'center', alignItems: 'center'}}>
-                <Text>Timeline: {dates[sliderValue].slice(1)}</Text>
+                <Text>Timeline: {dates[sliderValueTimeline].slice(1)}</Text>
                 <Slider
-                  style={{width: 300, height: 40}}
+                  style={{width: 325, height: 40}}
                   minimumValue={0}
                   maximumValue={dates.length - 1}
                   step={1}
                   minimumTrackTintColor="#4af"
                   maximumTrackTintColor="#ccc"
-                  value={sliderValue}
+                  value={sliderValueTimeline}
                   onValueChange={handleSliderValueChange}
-                  // onSlidingComplete={handleSlidingComplete}
+                  onSlidingComplete={handleSlidingComplete}
                 />
               </View>
             }
-            <MapView style={styles.mapStyle}
+            <MapViewComponent
               initialRegion={initialRegion}
-              showsUserLocation={true}
-              zoomEnabled={true}
-              minZoomLevel={0}
-              maxZoomLevel={20}
-              scrollEnabled={true}
-              rotateEnabled={true}
-              loadingEnabled={true}
-            >
-              {coronaData !== null && geoCoords && coronaData.map((point) => {
-                let name = getNameKey(point, keyType)
-                // const nameKey = getNameKey(point, keyType, keyCountry, keyRegion)
-                // don't display if past name in dataset is different than current name
-                // i.e. "United States Virgin Islands" vs "Virgin Islands, U.S."
-                // FIXME: this solution won't display Countries/Regions with different previous names
-                // and if there is no Latitude/Longitude given
-                const keyLatitude = dataKeys[keyType].lat
-                const keyLongitude = dataKeys[keyType].long
-                
-                const todayCoordsExist = geoCoords[name] !== undefined
-                const pointCoordsExist = point[keyLatitude] !== undefined && point[keyLongitude] !== undefined                
-                if (todayCoordsExist || pointCoordsExist) {
-                  let latlng
-                  if (pointCoordsExist) {
-                    latlng = { latitude: Number(point[keyLatitude]), longitude: Number(point[keyLongitude]) }
-                  } else if (todayCoordsExist) {
-                    latlng = { latitude: geoCoords[name].latitude, longitude: geoCoords[name].longitude}
-                  }
-                  let numCases = 1
-                  if (mapType === 'confirmedCases') {
-                    numCases = point['Confirmed']
-                  } else if (mapType === 'activeCases') {
-                    numCases = point['Confirmed'] - point['Deaths'] - point['Recovered']
-                  } else if (mapType === 'recovered') {
-                    numCases = point['Recovered']
-                  } else {
-                    numCases = 0
-                  }
-                  if (numCases > 0) {                    
-                    return (
-                      <CustomMarker
-                        key={shortid.generate()}
-                        coordinate={latlng}
-                        title={name}
-                        description={String(numCases)}
-                        radius={Math.cbrt(numCases) * 3}
-                        mapType={mapType}
-                      ></CustomMarker>
-                    )
-                  } else {
-                    return null
-                  }
-                }
-              })}
-            </MapView>
+              coronaData={coronaData}
+              keyType={keyType}
+              geoCoords={geoCoords}
+              dataKeys={dataKeys}
+              mapType={mapType}
+            />
           </View>
         }
       </View>  
