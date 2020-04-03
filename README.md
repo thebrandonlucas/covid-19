@@ -13,4 +13,4 @@ https://play.google.com/store/apps/details?id=host.exp.exponent&referrer=www
 `expo start`
 In the terminal, press `p` to enable production mode. 
 
-A browser window will popup at localhost:19002. Scan the QR code on your mobile device and it the project should open in expo. 
+A browser window will popup at localhost:19002. Scan the QR code on your mobile device and the project should open in expo. 
