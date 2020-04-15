@@ -11,22 +11,16 @@ export default function InfoScreen() {
             <Text style={styles.title}>Source</Text>
             <Text style={styles.body}>All data used in this application is from the following Github repository:</Text>
             <Button title="CSSEGISandData/COVID-19" onPress={handleGithubLinkPress}></Button>
+            <Text style={styles.body}>Source code can be found at:</Text>
+            <Button title="Source Code on Github" onPress={handleGithubSourceCodeLinkPress}></Button>
           </View>
           <View style={styles.contentView}>
             <Text style={styles.title}>CDC Information Page</Text>
             <Button title="CDC COVID-19" onPress={handleCDCLinkPress}></Button>
           </View>
-          {
-/*
-          <View style={styles.contentView}>
-            <Text style={styles.body}>An online dashboard is also available: </Text>
-            <Button title="Online Dashboard" onPress={handleOnlineDashboardLinkPress}></Button>
-          </View>
-*/
-          }
           <View style={styles.contentView}>
             <Text style={styles.body}>
-              Maintained and provided by the Center for Systems Science and Engineering 
+              All data used Maintained and provided by the Center for Systems Science and Engineering 
               (CSSE) at Johns Hopkins University (JHU)
             </Text>
             <Button title="CSSE website" onPress={handleWebsiteLinkPress}></Button>
@@ -39,6 +33,10 @@ export default function InfoScreen() {
 
 function handleGithubLinkPress() {
   WebBrowser.openBrowserAsync('https://github.com/CSSEGISandData/COVID-19');
+}
+
+function handleGithubSourceCodeLinkPress() {
+  WebBrowser.openBrowserAsync('https://github.com/thebrandonlucas/covid-19')
 }
 
 function handleCDCLinkPress() {
